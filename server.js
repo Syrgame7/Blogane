@@ -5,27 +5,26 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+// زدنا الحجم المسموح به لرفع الصور (5 ميجا)
 const io = new Server(server, {
-    cors: { origin: "*" },
-    maxHttpBufferSize: 1e8 // السماح ببيانات بحجم 100 ميجا (للصور إذا لزم الأمر)
+    maxHttpBufferSize: 5 * 1024 * 1024 
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- قاعدة البيانات (في الذاكرة) ---
+// --- بيانات الذاكرة ---
 let users = [];
-// posts structure: { id, author, email, avatar, content, mediaType, mediaUrl, date, likes: [], comments: [], context: 'general'|'group'|'page', contextId }
 let posts = []; 
+let reels = []; // مصفوفة الريلز
 let groups = [
-    { id: 'g1', name: 'مجتمع المطورين', description: 'نقاشات برمجية', members: [], owner: '' },
-    { id: 'g2', name: 'عشاق التصميم', description: 'شارك تصاميمك', members: [], owner: '' }
+    { id: 'g1', name: 'مجتمع المبرمجين', description: 'للنقاشات التقنية', members: [], owner: 'System' }
 ]; 
 let pages = [
-    { id: 'p1', name: 'أخبار التكنولوجيا', followers: [] },
-    { id: 'p2', name: 'ميمز وضحك', followers: [] }
+    { id: 'p1', name: 'أخبار العالم', followers: [], owner: 'System' }
 ];
 let friendRequests = [];
 let friendships = [];
+let globalMessages = []; // رسائل الشات العام
 let connectedSockets = {}; 
 
 io.on('connection', (socket) => {
@@ -35,12 +34,7 @@ io.on('connection', (socket) => {
         if (users.find(u => u.email === data.email)) {
             socket.emit('auth_error', 'البريد مسجل بالفعل');
         } else {
-            const newUser = { 
-                ...data, 
-                id: Date.now(), 
-                avatar: `https://ui-avatars.com/api/?name=${data.name}&background=random&size=128`,
-                bio: 'مستخدم جديد في Blogane'
-            };
+            const newUser = { ...data, id: Date.now(), avatar: `https://ui-avatars.com/api/?name=${data.name}&background=random`, bio: 'مستخدم جديد' };
             users.push(newUser);
             socket.emit('auth_success', newUser);
         }
@@ -51,14 +45,8 @@ io.on('connection', (socket) => {
         if (user) {
             connectedSockets[user.email] = socket.id;
             socket.emit('auth_success', user);
-            
-            // إرسال البيانات الأساسية
-            socket.emit('init_data', { groups, pages });
-            
-            // إرسال المنشورات العامة فقط في البداية
-            const generalPosts = posts.filter(p => p.context === 'general');
-            socket.emit('load_posts', generalPosts);
-            
+            socket.emit('init_data', { groups, pages, reels, globalMessages });
+            socket.emit('load_posts', posts.filter(p => p.context === 'general'));
             updateFriendsList(user.email);
             checkFriendRequests(user.email);
         } else {
@@ -66,63 +54,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- تعديل الملف الشخصي ---
-    socket.on('update_profile', (newData) => {
-        const userIndex = users.findIndex(u => u.email === newData.email);
-        if (userIndex !== -1) {
-            users[userIndex].name = newData.name;
-            users[userIndex].bio = newData.bio;
-            users[userIndex].avatar = newData.avatar; // رابط صورة جديد
-            
-            // تحديث بيانات المستخدم في المنشورات القديمة (اختياري، لكن أفضل للعرض)
-            posts.forEach(p => {
-                if(p.email === newData.email) {
-                    p.author = newData.name;
-                    p.avatar = newData.avatar;
-                }
-            });
-
-            socket.emit('auth_success', users[userIndex]); // تحديث البيانات محلياً
-            io.emit('profile_updated', users[userIndex]); // إعلام الجميع (لتحديث التعليقات وغيرها)
-        }
-    });
-
-    // --- المنشورات والتفاعل ---
+    // --- المنشورات والصور ---
     socket.on('new_post', (data) => {
         const newPost = {
-            ...data,
-            id: Date.now(),
-            likes: [], // مصفوفة إيميلات المعجبين
-            comments: [],
-            date: new Date().toISOString()
+            ...data, id: Date.now(), likes: [], comments: [], date: new Date().toISOString()
         };
         posts.unshift(newPost);
         io.emit('receive_post', newPost);
     });
 
-    socket.on('like_post', ({ postId, userEmail }) => {
-        const post = posts.find(p => p.id == postId);
-        if(post) {
-            if(post.likes.includes(userEmail)) {
-                post.likes = post.likes.filter(e => e !== userEmail); // إزالة اللايك
-            } else {
-                post.likes.push(userEmail); // إضافة لايك
-            }
-            io.emit('update_post_stats', { postId, likes: post.likes });
-        }
-    });
-
-    socket.on('comment_post', ({ postId, userEmail, userName, userAvatar, text }) => {
-        const post = posts.find(p => p.id == postId);
-        if(post) {
-            const newComment = {
-                id: Date.now(),
-                userEmail, userName, userAvatar, text,
-                date: new Date().toISOString()
-            };
-            post.comments.push(newComment);
-            io.emit('new_comment', { postId, comment: newComment });
-        }
+    // --- الريلز (Reels) ---
+    socket.on('new_reel', (data) => {
+        const reel = { ...data, id: Date.now(), likes: [] };
+        reels.unshift(reel); // الأحدث في البداية
+        io.emit('receive_reel', reel);
     });
 
     // --- المجموعات والصفحات ---
@@ -130,12 +75,15 @@ io.on('connection', (socket) => {
         const newGroup = { id: 'g' + Date.now(), name, description: desc, members: [owner], owner };
         groups.push(newGroup);
         io.emit('update_groups', groups);
+        // إرجاع الآيدي للمستخدم ليدخل مباشرة
+        socket.emit('group_created_success', newGroup);
     });
 
     socket.on('create_page', ({ name, owner }) => {
-        const newPage = { id: 'p' + Date.now(), name, followers: [owner] };
+        const newPage = { id: 'p' + Date.now(), name, followers: [owner], owner };
         pages.push(newPage);
         io.emit('update_pages', pages);
+        socket.emit('page_created_success', newPage);
     });
 
     socket.on('join_group', ({ groupId, email }) => {
@@ -146,16 +94,28 @@ io.on('connection', (socket) => {
         }
     });
 
-    // طلب محتوى خاص (عند دخول مجموعة أو صفحة)
     socket.on('get_context_posts', ({ context, contextId }) => {
         const filteredPosts = posts.filter(p => p.context === context && p.contextId === contextId);
         socket.emit('load_posts', filteredPosts);
     });
 
-    // --- الأصدقاء والدردشة (كما هي) ---
+    // --- الدردشة (عامة وخاصة) ---
+    socket.on('send_global_msg', (data) => {
+        const msg = { ...data, id: Date.now() };
+        globalMessages.push(msg);
+        if(globalMessages.length > 50) globalMessages.shift(); // الاحتفاظ بآخر 50 رسالة فقط
+        io.emit('receive_global_msg', msg);
+    });
+
+    socket.on('private_message', (data) => {
+        const targetSocket = connectedSockets[data.to];
+        if (targetSocket) io.to(targetSocket).emit('receive_private_message', data);
+        socket.emit('receive_private_message', data);
+    });
+
+    // --- الأصدقاء ---
     socket.on('send_friend_request', (data) => {
         if (data.fromEmail === data.toEmail) return;
-        // منع التكرار
         if (!friendRequests.find(r => r.from === data.fromEmail && r.to === data.toEmail)) {
             friendRequests.push({ from: data.fromEmail, to: data.toEmail });
             const targetSocket = connectedSockets[data.toEmail];
@@ -172,12 +132,6 @@ io.on('connection', (socket) => {
             updateFriendsList(data.requesterEmail);
         }
         checkFriendRequests(data.userEmail);
-    });
-
-    socket.on('private_message', (data) => {
-        const targetSocket = connectedSockets[data.to];
-        if (targetSocket) io.to(targetSocket).emit('receive_private_message', data);
-        socket.emit('receive_private_message', data);
     });
 
     // --- دوال مساعدة ---

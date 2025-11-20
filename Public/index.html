@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blogane - Node.js</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* نفس الستايل السابق مع إضافات للدردشة والطلبات */
+        :root {
+            --bg-main: #0f172a; --bg-card: #1e293b; --primary: #8b5cf6; --accent: #10b981;
+            --text-main: #f1f5f9; --text-sec: #94a3b8; --border: #334155;
+        }
+        * { box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+        body { margin: 0; background: var(--bg-main); color: var(--text-main); overflow-x: hidden; }
+        
+        /* Auth Screen */
+        #auth-screen { display: flex; height: 100vh; align-items: center; justify-content: center; background: radial-gradient(circle, #1e1b4b, #0f172a); }
+        .auth-box { background: var(--bg-card); padding: 30px; border-radius: 20px; border: 1px solid var(--border); width: 400px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: var(--bg-main); border: 1px solid var(--border); color: white; border-radius: 8px; }
+        .btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .btn:hover { opacity: 0.9; }
+
+        /* App Interface */
+        #app-interface { display: none; }
+        nav { background: var(--bg-card); padding: 10px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .container { display: grid; grid-template-columns: 250px 1fr 300px; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .card { background: var(--bg-card); border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid var(--border); }
+        
+        /* Posts */
+        .post { animation: fadeIn 0.5s; }
+        .post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
+
+        /* Chat & Friends */
+        .friend-item { display: flex; align-items: center; gap: 10px; padding: 8px; cursor: pointer; border-radius: 8px; }
+        .friend-item:hover { background: rgba(255,255,255,0.05); }
+        .online-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; margin-right: auto; }
+        
+        /* Private Chat Popup */
+        .chat-popup { 
+            position: fixed; bottom: 0; left: 20px; width: 300px; background: var(--bg-card); 
+            border: 1px solid var(--border); border-radius: 15px 15px 0 0; display: none; flex-direction: column; 
+            z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        }
+        .chat-header { padding: 10px; background: var(--primary); color: white; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; cursor: pointer; }
+        .chat-body { height: 300px; overflow-y: auto; padding: 10px; background: #0f172a; display: flex; flex-direction: column; gap: 8px; }
+        .chat-msg { padding: 8px 12px; border-radius: 15px; max-width: 80%; font-size: 14px; }
+        .msg-in { background: var(--bg-card); align-self: flex-end; }
+        .msg-out { background: var(--primary); align-self: flex-start; }
+
+        /* Friend Requests */
+        .req-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .req-btn { padding: 5px 10px; font-size: 12px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-accept { background: var(--accent); color: white; }
+        .btn-reject { background: #ef4444; color: white; }
+
+        @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+        
+        @media(max-width: 900px) { .container { grid-template-columns: 1fr; } .side-col { display: none; } }
+    </style>
+</head>
+<body>
+
+    <!-- تسجيل الدخول -->
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h1 style="color:var(--primary)">Blogane</h1>
+            <p>شبكة اجتماعية حية بين الأصدقاء</p>
+            <input type="text" id="name" placeholder="الاسم" style="display:none">
+            <input type="email" id="email" placeholder="البريد الإلكتروني">
+            <input type="password" id="password" placeholder="كلمة المرور">
+            <button class="btn" onclick="login()" id="main-btn">دخول</button>
+            <p style="cursor:pointer; color:var(--text-sec); margin-top:10px" onclick="toggleAuth()">ليس لديك حساب؟ إنشاء حساب</p>
+        </div>
+    </div>
+
+    <!-- الواجهة الرئيسية -->
+    <div id="app-interface">
+        <nav>
+            <h3>Blogane</h3>
+            <div style="display:flex; align-items:center; gap:10px">
+                <span id="my-name"></span>
+                <img src="" id="my-avatar" class="avatar">
+                <button onclick="location.reload()" style="background:none; border:none; color:#ef4444; cursor:pointer">خروج</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- القائمة اليمنى (طلبات وإضافة أصدقاء) -->
+            <div class="side-col">
+                <div class="card">
+                    <h4>إضافة صديق</h4>
+                    <input type="email" id="friend-email" placeholder="أدخل إيميل الصديق">
+                    <button class="btn" style="margin-top:5px" onclick="sendFriendRequest()">إرسال طلب</button>
+                </div>
+                <div class="card">
+                    <h4>طلبات الصداقة <span id="req-count" style="background:var(--primary); padding:2px 6px; border-radius:5px; font-size:12px">0</span></h4>
+                    <div id="requests-list"></div>
+                </div>
+            </div>
+
+            <!-- المنتصف (المنشورات) -->
+            <main>
+                <div class="card">
+                    <textarea id="post-content" style="width:100%; background:transparent; border:none; color:white; resize:none" placeholder="شارك شيئاً..."></textarea>
+                    <button class="btn" style="width:auto; margin-top:10px" onclick="publishPost()">نشر</button>
+                </div>
+                <div id="feed"></div>
+            </main>
+
+            <!-- القائمة اليسرى (الأصدقاء والدردشة) -->
+            <div class="side-col">
+                <div class="card">
+                    <h4>الأصدقاء المتصلين</h4>
+                    <div id="friends-list">
+                        <p style="color:var(--text-sec); font-size:14px">لا يوجد أصدقاء بعد</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نافذة الدردشة العائمة -->
+        <div class="chat-popup" id="chat-box">
+            <div class="chat-header" onclick="toggleChat()">
+                <span id="chat-with-name">اسم الصديق</span>
+                <span>✕</span>
+            </div>
+            <div class="chat-body" id="chat-msgs"></div>
+            <div style="padding:10px; border-top:1px solid var(--border)">
+                <input type="text" id="msg-input" placeholder="اكتب رسالة..." onkeypress="handleMsg(event)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentUser = null;
+        let currentChatEmail = null;
+        let isRegister = false;
+
+        // --- المصادقة ---
+        function toggleAuth() {
+            isRegister = !isRegister;
+            document.getElementById('name').style.display = isRegister ? 'block' : 'none';
+            document.getElementById('main-btn').innerText = isRegister ? 'إنشاء حساب' : 'دخول';
+        }
+
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if(isRegister) {
+                const name = document.getElementById('name').value;
+                socket.emit('register', { name, email, password });
+            } else {
+                socket.emit('login', { email, password });
+            }
+        }
+
+        socket.on('auth_success', (user) => {
+            currentUser = user;
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-interface').style.display = 'block';
+            document.getElementById('my-name').innerText = user.name;
+            document.getElementById('my-avatar').src = user.avatar;
+        });
+
+        socket.on('auth_error', (msg) => alert(msg));
+
+        // --- المنشورات ---
+        function publishPost() {
+            const content = document.getElementById('post-content').value;
+            if(!content) return;
+            socket.emit('new_post', { author: currentUser.name, email: currentUser.email, avatar: currentUser.avatar, content });
+            document.getElementById('post-content').value = '';
+        }
+
+        socket.on('receive_post', (post) => {
+            const feed = document.getElementById('feed');
+            const postHTML = `
+                <div class="card post">
+                    <div class="post-header">
+                        <img src="${post.avatar}" class="avatar">
+                        <div>
+                            <b>${post.author}</b><br>
+                            <small style="color:var(--text-sec)">${new Date(post.date).toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                    <p>${post.content}</p>
+                </div>
+            `;
+            feed.innerHTML = postHTML + feed.innerHTML;
+        });
+
+        socket.on('load_posts', (posts) => {
+            posts.reverse().forEach(post => socket.emit('receive_post_internal', post)); // Hack to reuse logic
+            // بدلاً من الهكر، نقوم بتحديث الـ DOM مباشرة هنا
+             const feed = document.getElementById('feed');
+             feed.innerHTML = '';
+             posts.forEach(post => {
+                feed.innerHTML += `
+                <div class="card post">
+                    <div class="post-header">
+                        <img src="${post.avatar}" class="avatar">
+                        <div><b>${post.author}</b><br><small style="color:var(--text-sec)">${new Date(post.date).toLocaleTimeString()}</small></div>
+                    </div>
+                    <p>${post.content}</p>
+                </div>`;
+             });
+        });
+
+        // --- الأصدقاء و الطلبات ---
+        function sendFriendRequest() {
+            const email = document.getElementById('friend-email').value;
+            socket.emit('send_friend_request', { fromEmail: currentUser.email, toEmail: email });
+            alert('تم إرسال الطلب (إذا كان الإيميل صحيحاً)');
+            document.getElementById('friend-email').value = '';
+        }
+
+        socket.on('update_requests', (requests) => {
+            document.getElementById('req-count').innerText = requests.length;
+            const list = document.getElementById('requests-list');
+            list.innerHTML = '';
+            requests.forEach(req => {
+                list.innerHTML += `
+                    <div class="req-item">
+                        <div style="display:flex; align-items:center; gap:5px">
+                            <img src="${req.avatar}" style="width:25px; height:25px; border-radius:50%">
+                            <span>${req.name}</span>
+                        </div>
+                        <div>
+                            <button class="req-btn btn-accept" onclick="respondReq('${req.email}', true)">✔</button>
+                            <button class="req-btn btn-reject" onclick="respondReq('${req.email}', false)">✖</button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+
+        function respondReq(requesterEmail, accept) {
+            socket.emit('respond_friend_request', { userEmail: currentUser.email, requesterEmail, accept });
+        }
+
+        socket.on('update_friends', (friends) => {
+            const list = document.getElementById('friends-list');
+            if(friends.length === 0) {
+                list.innerHTML = '<p style="color:var(--text-sec)">لا يوجد أصدقاء</p>'; return;
+            }
+            list.innerHTML = '';
+            friends.forEach(friend => {
+                list.innerHTML += `
+                    <div class="friend-item" onclick="openChat('${friend.email}', '${friend.name}')">
+                        <img src="${friend.avatar}" class="avatar" style="width:30px; height:30px">
+                        <span>${friend.name}</span>
+                        ${friend.isOnline ? '<div class="online-dot"></div>' : ''}
+                    </div>
+                `;
+            });
+        });
+
+        // --- الدردشة الخاصة ---
+        function openChat(email, name) {
+            currentChatEmail = email;
+            document.getElementById('chat-box').style.display = 'flex';
+            document.getElementById('chat-with-name').innerText = name;
+            document.getElementById('chat-msgs').innerHTML = ''; // تنظيف (في تطبيق حقيقي نجلب الأرشيف)
+        }
+
+        function toggleChat() {
+            const box = document.getElementById('chat-box');
+            box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+        }
+
+        function handleMsg(e) {
+            if(e.key === 'Enter') {
+                const input = document.getElementById('msg-input');
+                const text = input.value;
+                if(!text) return;
+                
+                socket.emit('private_message', { from: currentUser.email, to: currentChatEmail, content: text });
+                input.value = '';
+            }
+        }
+
+        socket.on('receive_private_message', (data) => {
+            // إذا كانت الرسالة لي أو مني، اعرضها
+            // في حالتي: إذا كنت أنا المستقبل، هل المحادثة مفتوحة مع المرسل؟
+            
+            const isForMe = data.to === currentUser.email;
+            const isFromMe = data.from === currentUser.email;
+            
+            // تحديد هل نعرض الرسالة في النافذة الحالية
+            if ( (isForMe && currentChatEmail === data.from) || (isFromMe && currentChatEmail === data.to) ) {
+                const msgsDiv = document.getElementById('chat-msgs');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-msg ${isFromMe ? 'msg-out' : 'msg-in'}`;
+                msgDiv.innerText = data.content;
+                msgsDiv.appendChild(msgDiv);
+                msgsDiv.scrollTop = msgsDiv.scrollHeight;
+            } else if (isForMe) {
+                // إشعار صوتي أو مرئي (اختياري)
+                alert(`رسالة جديدة من ${data.from}`);
+            }
+        });
+
+    </script>
+</body>
+</html>

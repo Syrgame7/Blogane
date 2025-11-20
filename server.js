@@ -7,9 +7,10 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
+// زيادة الحد الأقصى لاستقبال البيانات
 const io = new Server(server, {
     cors: { origin: "*" },
-    maxHttpBufferSize: 50 * 1024 * 1024 
+    maxHttpBufferSize: 100 * 1024 * 1024 // 100 MB
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -21,7 +22,6 @@ if (!fs.existsSync(UPLOAD_DIR)){
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// تهيئة قاعدة البيانات
 let db = { users: [], posts: [], reels: [], groups: [], pages: [], friendRequests: [], friendships: [], globalMessages: [] };
 
 // تحميل البيانات
@@ -33,6 +33,7 @@ function saveData() {
     fs.writeFile(DATA_FILE, JSON.stringify(db, null, 2), () => {});
 }
 
+// دالة لحفظ الصور (Base64) - للمنشورات والبروفايل
 function saveBase64ToFile(base64Data, prefix) {
     try {
         const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
@@ -71,14 +72,63 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- Profile Posts (المناشير في الملف الشخصي) ---
-    socket.on('get_user_posts', (email) => {
-        // جلب المنشورات التي نشرها هذا الشخص فقط (سواء كانت عامة أو في مجموعات)
-        // أو يمكن حصرها في العامة فقط حسب رغبتك. هنا سنجلب كل ما نشره.
-        const userPosts = db.posts.filter(p => p.email === email);
-        socket.emit('load_profile_posts', userPosts);
+    // --- Posts ---
+    socket.on('new_post', (data) => {
+        let mediaUrl = null;
+        if (data.media && data.media.startsWith('data:')) mediaUrl = saveBase64ToFile(data.media, 'post');
+        const newPost = { ...data, id: Date.now(), media: mediaUrl, likes: [], comments: [], date: new Date().toISOString() };
+        db.posts.unshift(newPost); saveData();
+        io.emit('receive_post', newPost);
+        socket.emit('upload_complete');
     });
 
+    // --- Video Upload System (Chunking) ---
+    // 1. استقبال بداية الرفع
+    socket.on('upload_reel_start', ({ name, size }) => {
+        const fileName = `reel_${Date.now()}_${Math.floor(Math.random() * 1000)}${path.extname(name)}`;
+        const filePath = path.join(UPLOAD_DIR, fileName);
+        // إنشاء ملف فارغ
+        fs.open(filePath, 'w', (err, fd) => {
+            if (err) {
+                socket.emit('upload_error', 'فشل إنشاء الملف');
+            } else {
+                fs.close(fd, () => {
+                    socket.emit('upload_ready', { tempFileName: fileName });
+                });
+            }
+        });
+    });
+
+    // 2. استقبال جزء من الملف
+    socket.on('upload_reel_chunk', ({ fileName, data }) => {
+        const filePath = path.join(UPLOAD_DIR, fileName);
+        // كتابة الجزء (Chunk) في نهاية الملف
+        fs.appendFile(filePath, data, (err) => {
+            if (err) console.error('Error appending chunk', err);
+            // نطلب الجزء التالي من العميل (اختياري، لكن هنا العميل سيرسل تباعاً)
+        });
+    });
+
+    // 3. نهاية الرفع وحفظ البيانات
+    socket.on('upload_reel_end', ({ fileName, desc, author, avatar, email }) => {
+        const reelUrl = `/uploads/${fileName}`;
+        const reel = { 
+            id: Date.now(), 
+            url: reelUrl, 
+            desc, 
+            author, 
+            avatar, 
+            email, 
+            likes: [], 
+            comments: [] 
+        };
+        db.reels.unshift(reel);
+        saveData();
+        io.emit('receive_reel', reel);
+        socket.emit('upload_complete'); // إخفاء اللودر عند العميل
+    });
+
+    // --- بقية الأوامر (بروفايل، شات، مجموعات...) ---
     socket.on('update_profile', (data) => {
         const idx = db.users.findIndex(u => u.email === data.email);
         if(idx !== -1) {
@@ -88,24 +138,12 @@ io.on('connection', (socket) => {
                 const url = saveBase64ToFile(data.avatar, 'avatar');
                 if(url) db.users[idx].avatar = url;
             }
-            // تحديث البيانات في المنشورات القديمة
             const u = db.users[idx];
             db.posts.forEach(p => { if(p.email === u.email) { p.author = u.name; p.avatar = u.avatar; } });
             db.reels.forEach(r => { if(r.email === u.email) { r.author = u.name; r.avatar = u.avatar; } });
-            
             saveData();
             socket.emit('profile_updated_success', u);
         }
-    });
-
-    // --- Posts ---
-    socket.on('new_post', (data) => {
-        let mediaUrl = null;
-        if (data.media && data.media.startsWith('data:')) mediaUrl = saveBase64ToFile(data.media, 'post');
-        const newPost = { ...data, id: Date.now(), media: mediaUrl, likes: [], comments: [], date: new Date().toISOString() };
-        db.posts.unshift(newPost); saveData();
-        io.emit('receive_post', newPost);
-        socket.emit('upload_complete');
     });
 
     socket.on('toggle_like', ({ id, type, userEmail }) => {
@@ -117,7 +155,7 @@ io.on('connection', (socket) => {
             io.emit('update_likes', { id, type, likes: item.likes });
         }
     });
-
+    
     socket.on('add_comment', ({ postId, text, userEmail, userName, userAvatar }) => {
         const post = db.posts.find(p => p.id == postId);
         if(post) {
@@ -127,35 +165,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- AI Chatbot (المساعد الذكي) ---
-    socket.on('send_ai_msg', (text) => {
-        // 1. الرد الفوري بأن الرسالة وصلت (للعرض عند المستخدم)
-        // يتم التعامل معها في الواجهة، هنا نجهز الرد
-        
-        // محاكاة ذكاء اصطناعي بسيط
-        setTimeout(() => {
-            let reply = "أنا مساعد ذكي تجريبي، لا زلت أتعلم!";
-            if (text.includes('مرحبا') || text.includes('هلا')) reply = "أهلاً بك في Blogane! كيف يمكنني مساعدتك اليوم؟ 🤖";
-            else if (text.includes('كيف حالك')) reply = "أنا مجرد كود برمجي، لكني أشعر أنني بخير طالما السيرفر يعمل! 😄";
-            else if (text.includes('اسمك')) reply = "اسمي Blogane Bot الإصدار 1.0";
-            else if (text.includes('شكرا')) reply = "على الرحب والسعة! في خدمتك دائماً.";
-            
-            socket.emit('receive_ai_msg', { text: reply, isBot: true });
-        }, 1000); // تأخير ثانية ليبدو واقعياً
-    });
-
-    // --- Reels ---
-    socket.on('new_reel', (data) => {
-        let url = saveBase64ToFile(data.videoBase64, 'reel');
-        if(url) {
-            const reel = { id: Date.now(), url, desc: data.desc, author: data.author, avatar: data.avatar, email: data.email, likes: [], comments: [] };
-            db.reels.unshift(reel); saveData();
-            io.emit('receive_reel', { ...reel, videoBase64: null });
-            socket.emit('upload_complete');
-        }
-    });
-
-    // --- Global Chat ---
     socket.on('send_global_msg', (data) => {
         let img = data.image ? saveBase64ToFile(data.image, 'chat') : null;
         const msg = { ...data, image: img, id: Date.now() };
@@ -165,20 +174,41 @@ io.on('connection', (socket) => {
         io.emit('receive_global_msg', msg);
     });
 
-    // --- Groups/Pages ---
+    socket.on('send_ai_msg', (text) => {
+        setTimeout(() => {
+            let reply = "أهلاً! أنا المساعد الذكي، كيف أخدمك؟";
+            socket.emit('receive_ai_msg', { text: reply });
+        }, 1000);
+    });
+
     socket.on('create_group', (d) => { const g={id:'g'+Date.now(),...d,members:[d.owner]}; db.groups.push(g); saveData(); io.emit('update_groups', db.groups); socket.emit('group_created_success', g); });
     socket.on('create_page', (d) => { const p={id:'p'+Date.now(),...d,followers:[d.owner]}; db.pages.push(p); saveData(); io.emit('update_pages', db.pages); socket.emit('page_created_success', p); });
     socket.on('get_context_posts', ({context, contextId}) => { socket.emit('load_posts', db.posts.filter(p => p.context === context && p.contextId === contextId)); });
-
-    // --- Friends ---
+    socket.on('get_user_posts', (email) => { socket.emit('load_profile_posts', db.posts.filter(p => p.email === email)); });
+    
     socket.on('send_friend_request', (d) => {
         if(d.from !== d.to && !db.friendRequests.find(r=>r.from===d.from && r.to===d.to)) {
             db.friendRequests.push({from:d.from, to:d.to}); saveData();
             if(connectedSockets[d.to]) io.to(connectedSockets[d.to]).emit('new_req');
         }
     });
-    
-    // ... (بقية كود الأصدقاء كما هو)
+    socket.on('respond_friend_request', (d) => {
+        db.friendRequests = db.friendRequests.filter(req => !(req.to === d.userEmail && req.from === d.requesterEmail));
+        if(d.accept) {
+            db.friendships.push({ user1: d.userEmail, user2: d.requesterEmail });
+            updateFriendsList(d.userEmail); updateFriendsList(d.requesterEmail);
+        }
+        saveData(); 
+    });
+
+    function updateFriendsList(email) {
+        const fs = db.friendships.filter(f => f.user1 === email || f.user2 === email);
+        const emails = fs.map(f => f.user1 === email ? f.user2 : f.user1);
+        const fData = db.users.filter(u => emails.includes(u.email)).map(u => ({
+            name: u.name, email: u.email, avatar: u.avatar, isOnline: !!connectedSockets[u.email]
+        }));
+        if(connectedSockets[email]) io.to(connectedSockets[email]).emit('update_friends', fData);
+    }
 
     socket.on('disconnect', () => {
         const email = Object.keys(connectedSockets).find(k => connectedSockets[k] === socket.id);

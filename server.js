@@ -5,20 +5,24 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: { origin: "*" },
+    maxHttpBufferSize: 1e8 // السماح ببيانات بحجم 100 ميجا (للصور إذا لزم الأمر)
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- قاعدة البيانات (في الذاكرة) ---
 let users = [];
-let posts = []; // { id, author, email, avatar, content, date, likes, type: 'general'|'group'|'page', targetId }
+// posts structure: { id, author, email, avatar, content, mediaType, mediaUrl, date, likes: [], comments: [], context: 'general'|'group'|'page', contextId }
+let posts = []; 
 let groups = [
-    { id: 'g1', name: 'عشاق البرمجة', members: [] },
-    { id: 'g2', name: 'تصميم جرافيك', members: [] }
+    { id: 'g1', name: 'مجتمع المطورين', description: 'نقاشات برمجية', members: [], owner: '' },
+    { id: 'g2', name: 'عشاق التصميم', description: 'شارك تصاميمك', members: [], owner: '' }
 ]; 
 let pages = [
-    { id: 'p1', name: 'أخبار التقنية', likes: 0 },
-    { id: 'p2', name: 'ضحك وفرفشة', likes: 0 }
+    { id: 'p1', name: 'أخبار التكنولوجيا', followers: [] },
+    { id: 'p2', name: 'ميمز وضحك', followers: [] }
 ];
 let friendRequests = [];
 let friendships = [];
@@ -31,7 +35,12 @@ io.on('connection', (socket) => {
         if (users.find(u => u.email === data.email)) {
             socket.emit('auth_error', 'البريد مسجل بالفعل');
         } else {
-            const newUser = { ...data, id: Date.now(), avatar: `https://ui-avatars.com/api/?name=${data.name}&background=random&size=128` };
+            const newUser = { 
+                ...data, 
+                id: Date.now(), 
+                avatar: `https://ui-avatars.com/api/?name=${data.name}&background=random&size=128`,
+                bio: 'مستخدم جديد في Blogane'
+            };
             users.push(newUser);
             socket.emit('auth_success', newUser);
         }
@@ -43,9 +52,12 @@ io.on('connection', (socket) => {
             connectedSockets[user.email] = socket.id;
             socket.emit('auth_success', user);
             
-            // إرسال البيانات الأولية
+            // إرسال البيانات الأساسية
             socket.emit('init_data', { groups, pages });
-            socket.emit('load_posts', posts.filter(p => p.type === 'general'));
+            
+            // إرسال المنشورات العامة فقط في البداية
+            const generalPosts = posts.filter(p => p.context === 'general');
+            socket.emit('load_posts', generalPosts);
             
             updateFriendsList(user.email);
             checkFriendRequests(user.email);
@@ -54,57 +66,102 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- المنشورات ---
+    // --- تعديل الملف الشخصي ---
+    socket.on('update_profile', (newData) => {
+        const userIndex = users.findIndex(u => u.email === newData.email);
+        if (userIndex !== -1) {
+            users[userIndex].name = newData.name;
+            users[userIndex].bio = newData.bio;
+            users[userIndex].avatar = newData.avatar; // رابط صورة جديد
+            
+            // تحديث بيانات المستخدم في المنشورات القديمة (اختياري، لكن أفضل للعرض)
+            posts.forEach(p => {
+                if(p.email === newData.email) {
+                    p.author = newData.name;
+                    p.avatar = newData.avatar;
+                }
+            });
+
+            socket.emit('auth_success', users[userIndex]); // تحديث البيانات محلياً
+            io.emit('profile_updated', users[userIndex]); // إعلام الجميع (لتحديث التعليقات وغيرها)
+        }
+    });
+
+    // --- المنشورات والتفاعل ---
     socket.on('new_post', (data) => {
         const newPost = {
             ...data,
             id: Date.now(),
-            likes: 0,
+            likes: [], // مصفوفة إيميلات المعجبين
+            comments: [],
             date: new Date().toISOString()
         };
         posts.unshift(newPost);
-        
-        // إذا كان منشور عام، أرسله للكل
-        if(data.type === 'general') {
-            io.emit('receive_post', newPost);
-        } 
-        // إذا كان لمجموعة، أرسله فقط للأعضاء (هنا للتبسيط سنرسله للكل ولكن الفلترة في الواجهة)
-        else {
-            io.emit('receive_post', newPost); 
+        io.emit('receive_post', newPost);
+    });
+
+    socket.on('like_post', ({ postId, userEmail }) => {
+        const post = posts.find(p => p.id == postId);
+        if(post) {
+            if(post.likes.includes(userEmail)) {
+                post.likes = post.likes.filter(e => e !== userEmail); // إزالة اللايك
+            } else {
+                post.likes.push(userEmail); // إضافة لايك
+            }
+            io.emit('update_post_stats', { postId, likes: post.likes });
         }
     });
 
-    // --- البروفايل ---
-    socket.on('get_profile', (email) => {
-        const user = users.find(u => u.email === email);
-        if(user) {
-            const userPosts = posts.filter(p => p.email === email && p.type === 'general');
-            socket.emit('open_profile', { user, posts: userPosts });
+    socket.on('comment_post', ({ postId, userEmail, userName, userAvatar, text }) => {
+        const post = posts.find(p => p.id == postId);
+        if(post) {
+            const newComment = {
+                id: Date.now(),
+                userEmail, userName, userAvatar, text,
+                date: new Date().toISOString()
+            };
+            post.comments.push(newComment);
+            io.emit('new_comment', { postId, comment: newComment });
         }
     });
 
     // --- المجموعات والصفحات ---
-    socket.on('create_group', (name) => {
-        const newGroup = { id: 'g' + Date.now(), name, members: [] };
+    socket.on('create_group', ({ name, desc, owner }) => {
+        const newGroup = { id: 'g' + Date.now(), name, description: desc, members: [owner], owner };
         groups.push(newGroup);
         io.emit('update_groups', groups);
     });
 
-    socket.on('like_page', (pageId) => {
-        const page = pages.find(p => p.id === pageId);
-        if(page) {
-            page.likes++;
-            io.emit('update_pages', pages);
+    socket.on('create_page', ({ name, owner }) => {
+        const newPage = { id: 'p' + Date.now(), name, followers: [owner] };
+        pages.push(newPage);
+        io.emit('update_pages', pages);
+    });
+
+    socket.on('join_group', ({ groupId, email }) => {
+        const group = groups.find(g => g.id === groupId);
+        if(group && !group.members.includes(email)) {
+            group.members.push(email);
+            io.emit('update_groups', groups);
         }
     });
 
-    // --- نظام الأصدقاء والدردشة (كما هو) ---
+    // طلب محتوى خاص (عند دخول مجموعة أو صفحة)
+    socket.on('get_context_posts', ({ context, contextId }) => {
+        const filteredPosts = posts.filter(p => p.context === context && p.contextId === contextId);
+        socket.emit('load_posts', filteredPosts);
+    });
+
+    // --- الأصدقاء والدردشة (كما هي) ---
     socket.on('send_friend_request', (data) => {
         if (data.fromEmail === data.toEmail) return;
-        friendRequests.push({ from: data.fromEmail, to: data.toEmail });
-        const targetSocket = connectedSockets[data.toEmail];
-        if (targetSocket) io.to(targetSocket).emit('new_req');
-        checkFriendRequests(data.toEmail);
+        // منع التكرار
+        if (!friendRequests.find(r => r.from === data.fromEmail && r.to === data.toEmail)) {
+            friendRequests.push({ from: data.fromEmail, to: data.toEmail });
+            const targetSocket = connectedSockets[data.toEmail];
+            if (targetSocket) io.to(targetSocket).emit('new_req');
+            checkFriendRequests(data.toEmail);
+        }
     });
 
     socket.on('respond_friend_request', (data) => {

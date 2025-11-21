@@ -3,85 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blogane</title>
+    <title>Blogane X</title>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #0f172a;
-            --panel: rgba(30, 41, 59, 0.8);
-            --primary: #8b5cf6;
-            --accent: #ec4899;
-            --text: #f8fafc;
-            --gray: #94a3b8;
-            --glass: blur(16px);
+            --bg: #020617; --panel: rgba(30, 41, 59, 0.85); --primary: #8b5cf6;
+            --accent: #ec4899; --text: #f8fafc; --gray: #94a3b8; --glass: blur(16px);
             --border: 1px solid rgba(255, 255, 255, 0.1);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { 
-            background-color: var(--bg); 
-            background-image: radial-gradient(circle at 10% 10%, rgba(139,92,246,0.15) 0%, transparent 50%), radial-gradient(circle at 90% 90%, rgba(236,72,153,0.15) 0%, transparent 50%);
-            color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
-        }
+        body { background: var(--bg); background-image: radial-gradient(circle at 0% 0%, #312e81 0%, transparent 50%), radial-gradient(circle at 100% 100%, #4c0519 0%, transparent 50%); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Components */
-        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(139,92,246,0.3); }
-        .btn:active { transform: scale(0.96); }
-        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 18px; padding: 15px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-        .input-box { width: 100%; background: rgba(0,0,0,0.3); border: var(--border); padding: 12px; border-radius: 12px; color: white; outline: none; transition: 0.3s; }
+        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); }
+        .btn:active { transform: scale(0.95); }
+        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .input-box { width: 100%; background: rgba(0,0,0,0.3); border: var(--border); padding: 12px; border-radius: 12px; color: white; outline: none; }
         .input-box:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
         .avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
 
-        /* Nav */
-        .bottom-nav { height: 70px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); border-radius: 20px 20px 0 0; padding-bottom: 5px; }
+        .bottom-nav { height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); border-radius: 24px 24px 0 0; padding-bottom: 10px; }
         .nav-item { color: var(--gray); font-size: 22px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; }
         .nav-item.active { color: var(--primary); transform: translateY(-5px); text-shadow: 0 0 15px var(--primary); }
-        .badge { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; box-shadow: 0 0 10px var(--accent); }
+        .badge { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
 
-        /* Header & Views */
-        .header { padding: 15px 20px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
-        .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 90px; }
+        .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 100px; }
         .view.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .header { padding: 15px 20px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
 
-        /* Posts & Comments */
-        .post-img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 400px; object-fit: cover; }
-        .actions { display: flex; gap: 20px; margin-top: 15px; border-top: var(--border); padding-top: 10px; color: var(--gray); }
-        .act-btn { cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 14px; }
-        .liked { color: var(--accent); }
+        /* Comments */
         .comments-area { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); animation: slideDown 0.2s; }
         @keyframes slideDown { from{transform:translateY(-10px);opacity:0} to{transform:translateY(0);opacity:1} }
         .comment-item { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; }
         .comment-bubble { background: rgba(255,255,255,0.06); padding: 8px 12px; border-radius: 12px; flex: 1; }
 
+        /* Profile */
+        .profile-cover { height: 160px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 32px 32px; position: relative; margin-bottom: 60px; }
+        .profile-pic-lg { width: 110px; height: 110px; border-radius: 50%; border: 5px solid var(--bg); position: absolute; bottom: -55px; right: 50%; transform: translateX(50%); object-fit: cover; }
+        .friend-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 20px; font-size: 12px; margin: 3px; cursor: pointer; }
+
         /* Chat */
         .chat-tabs { display: flex; gap: 10px; padding: 10px; }
         .chat-tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--gray); cursor: pointer; border: var(--border); font-weight: bold; }
         .chat-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .msg-bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; margin-bottom: 8px; font-size: 14px; }
-        .msg-me { background: linear-gradient(135deg, var(--primary), #4f46e5); align-self: flex-start; }
-        .msg-other { background: #334155; align-self: flex-end; }
-        
-        /* Profile */
-        .profile-cover { height: 160px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 30px 30px; position: relative; margin-bottom: 60px; }
-        .profile-pic-lg { width: 110px; height: 110px; border-radius: 50%; border: 5px solid var(--bg); position: absolute; bottom: -55px; right: 50%; transform: translateX(50%); object-fit: cover; }
-        .friend-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 20px; font-size: 12px; margin: 3px; cursor: pointer; }
+        .msg-bubble { padding: 10px 16px; border-radius: 20px; max-width: 80%; margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+        .msg-me { background: linear-gradient(135deg, var(--primary), #4f46e5); align-self: flex-start; border-bottom-right-radius: 4px; }
+        .msg-other { background: #334155; align-self: flex-end; border-bottom-left-radius: 4px; }
+        .friend-item { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px; cursor: pointer; }
 
-        /* Modals & Loaders */
+        /* Loader & Modal */
         .loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s infinite; }
+        .spinner { width: 45px; height: 45px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
-        .modal-box { background: #1e293b; width: 90%; max-width: 400px; padding: 25px; border-radius: 20px; border: var(--border); }
+        .modal-box { background: #1e293b; width: 90%; max-width: 400px; padding: 25px; border-radius: 24px; border: var(--border); }
+        
+        .post-img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 450px; object-fit: cover; }
+        .actions { display: flex; gap: 20px; margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: var(--gray); }
+        .act-btn { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .liked { color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <!-- Loading Screen (Default Visible) -->
     <div class="loader-overlay" id="loader">
         <div class="spinner"></div>
-        <p style="margin-top:15px; color:white" id="loader-text">جاري التحقق من الحساب...</p>
+        <p style="margin-top:15px; color:white" id="loader-text">جاري التحقق...</p>
     </div>
 
     <!-- Auth -->
@@ -98,7 +87,7 @@
 
     <div class="modal-overlay" id="generic-modal"><div class="modal-box" id="modal-content"></div></div>
 
-    <!-- 1. HOME -->
+    <!-- HOME -->
     <div id="view-home" class="view">
         <div class="header"><h2>الرئيسية</h2><img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)"></div>
         <div id="ctx-banner" style="display:none; padding:15px; background:linear-gradient(to right, var(--primary), var(--accent)); text-align:center;">
@@ -120,7 +109,7 @@
         </div>
     </div>
 
-    <!-- 2. EXPLORE -->
+    <!-- EXPLORE -->
     <div id="view-explore" class="view">
         <div class="header"><h2>استكشف</h2></div>
         <div style="padding: 15px;">
@@ -138,13 +127,13 @@
         </div>
     </div>
 
-    <!-- 3. REELS -->
+    <!-- REELS -->
     <div id="view-reels" class="view" style="background: black;">
         <div style="position:absolute; top:20px; left:20px; z-index:100"><button class="btn" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px)" onclick="showReelModal()">+ فيديو</button></div>
         <div id="reels-container" style="height:100%; overflow-y:scroll; scroll-snap-type:y mandatory"></div>
     </div>
 
-    <!-- 4. CHAT -->
+    <!-- CHAT -->
     <div id="view-chat" class="view">
         <div class="header"><h2>الدردشة</h2></div>
         <div class="chat-tabs">
@@ -152,12 +141,10 @@
             <div class="chat-tab" onclick="switchChat('private')" id="tab-private">الأصدقاء</div>
             <div class="chat-tab" onclick="switchChat('ai')" id="tab-ai">AI</div>
         </div>
-        
         <div id="chat-global" style="height:calc(100% - 135px); display:flex; flex-direction:column">
             <div id="g-msgs" style="flex:1; overflow-y:auto; padding:15px"></div>
             <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="g-input" class="input-box" style="margin:0" placeholder="اكتب..."><button class="btn" onclick="sendGlobal()">➤</button></div>
         </div>
-
         <div id="chat-private" style="height:calc(100% - 135px); display:none; flex-direction:column">
             <div id="friends-list-view" style="padding:15px; flex:1; overflow-y:auto"></div>
             <div id="priv-convo" style="display:none; height:100%; flex-direction:column">
@@ -166,14 +153,13 @@
                 <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="p-input" class="input-box" style="margin:0" placeholder="خاص..."><button class="btn" onclick="sendPriv()">➤</button></div>
             </div>
         </div>
-
         <div id="chat-ai" style="height:calc(100% - 135px); display:none; flex-direction:column">
             <div id="ai-msgs" style="flex:1; overflow-y:auto; padding:15px"></div>
             <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="ai-input" class="input-box" style="margin:0" placeholder="اسأل AI..."><button class="btn" onclick="sendAi()">➤</button></div>
         </div>
     </div>
 
-    <!-- 5. PROFILE -->
+    <!-- PROFILE -->
     <div id="view-profile" class="view">
         <div class="profile-cover"><img src="" id="p-avatar" class="profile-pic-lg"></div>
         <div style="text-align:center; padding:60px 20px 0">
@@ -191,9 +177,9 @@
 
     <nav class="bottom-nav">
         <div class="nav-item active" onclick="navTo('home', this)"><i class="fas fa-home"></i><span>الرئيسية</span></div>
-        <div class="nav-item" onclick="navTo('explore', this)"><i class="fas fa-compass"></i><span>استكشف</span><div class="badge" id="nav-req-badge" style="display:none">0</div></div>
-        <div class="nav-item" onclick="navTo('reels', this)"><i class="fas fa-play-circle" style="color:var(--accent)"></i><span style="color:var(--accent)">ريلز</span></div>
-        <div class="nav-item" onclick="navTo('chat', this)"><i class="fas fa-comments"></i><span>الدردشة</span><div class="badge" id="nav-msg-badge" style="display:none">0</div></div>
+        <div class="nav-item" onclick="navTo('explore', this)"><i class="fas fa-compass"></i><span>استكشف</span><div class="badge" id="nav-req-badge">0</div></div>
+        <div class="nav-item" onclick="navTo('reels', this)"><i class="fas fa-play-circle" style="color:var(--accent)"></i><span>ريلز</span></div>
+        <div class="nav-item" onclick="navTo('chat', this)"><i class="fas fa-comments"></i><span>الدردشة</span><div class="badge" id="nav-msg-badge">!</div></div>
         <div class="nav-item" onclick="openProfile(currentUser.email, this)"><i class="fas fa-user"></i><span>أنا</span></div>
     </nav>
 
@@ -201,7 +187,7 @@
         const socket = io();
         let currentUser = null, currentContext = 'general', currentContextId = null, currentPriv = null, isReg = false;
 
-        // --- Startup Logic ---
+        // Check Login on Start
         window.onload = () => { 
             const s=localStorage.getItem('u'); 
             if(s) socket.emit('login', JSON.parse(s)); 
@@ -213,7 +199,7 @@
             document.getElementById('view-'+v).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
             if(el) el.classList.add('active');
-            if(v === 'chat') document.getElementById('nav-msg-badge').style.display='none'; // Clear badge
+            if(v==='chat') document.getElementById('nav-msg-badge').style.display='none';
         }
         function showLoader(t){ document.getElementById('loader-text').innerText=t; document.getElementById('loader').style.display='flex'; }
         function hideLoader(){ document.getElementById('loader').style.display='none'; }
@@ -258,7 +244,7 @@
         socket.on('upload_complete', hideLoader);
         function renderPost(p, t) {
             const l = p.likes.includes(currentUser.email);
-            const html = `<div class="card"><div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author}</b><br><small style="color:var(--gray); font-size:11px">${new Date(p.date).toLocaleTimeString()}</small></div></div><p style="margin-top:10px; line-height:1.5">${p.content||''}</p>${p.media?`<img src="${p.media}" class="post-img">`:''}<div class="actions"><div class="act-btn ${l?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})"><i class="${l?'fas':'far'} fa-heart"></i> <span id="l-${p.id}">${p.likes.length}</span></div><div class="act-btn" onclick="toggleC(${p.id})"><i class="far fa-comment"></i> <span>${p.comments.length}</span></div></div><div class="comments-area" id="com-${p.id}"><div id="clist-${p.id}">${p.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble" onclick="openProfile('${c.userEmail}')"><b>${c.userName}</b><br>${c.text}</div></div>`).join('')}</div><div style="display:flex; gap:5px; margin-top:10px"><input id="cin-${p.id}" class="input-box" style="padding:8px" placeholder="تعليق.."><button class="btn" style="padding:5px 10px" onclick="sendC(${p.id})">➤</button></div></div></div>`;
+            const html = `<div class="card"><div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author}</b><br><small style="color:var(--gray); font-size:11px">${new Date(p.date).toLocaleTimeString()}</small></div></div><p style="margin-top:10px">${p.content||''}</p>${p.media?`<img src="${p.media}" class="post-img">`:''}<div class="actions"><div class="act-btn ${l?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})"><i class="${l?'fas':'far'} fa-heart"></i> <span id="l-${p.id}">${p.likes.length}</span></div><div class="act-btn" onclick="toggleC(${p.id})"><i class="far fa-comment"></i> <span>${p.comments.length}</span></div></div><div class="comments-area" id="com-${p.id}"><div id="clist-${p.id}">${p.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble" onclick="openProfile('${c.userEmail}')"><b>${c.userName}</b><br>${c.text}</div></div>`).join('')}</div><div style="display:flex; gap:5px; margin-top:10px"><input id="cin-${p.id}" class="input-box" style="padding:8px" placeholder="تعليق.."><button class="btn" style="padding:5px 10px" onclick="sendC(${p.id})">➤</button></div></div></div>`;
             document.getElementById(t).insertAdjacentHTML('afterbegin', html);
         }
         window.toggleC=(id)=>{const e=document.getElementById(`com-${id}`); e.style.display=e.style.display==='block'?'none':'block';}
@@ -277,7 +263,6 @@
         socket.on('init_data', (d) => {
             document.getElementById('groups-list').innerHTML = d.groups.map(g=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join('');
             document.getElementById('pages-list').innerHTML = d.pages.map(p=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join('');
-            document.getElementById('req-badge-count').innerText = (d.friendRequests||[]).length;
             d.globalMessages.forEach(m => renderGlobalMsg(m));
             d.reels.forEach(r => document.getElementById('reels-container').insertAdjacentHTML('beforeend', `<div class="reel-item" style="height:calc(100vh - 75px); background:black; display:flex; justify-content:center; border-bottom:1px solid #333; scroll-snap-align:start"><video src="${r.url}" controls style="width:100%; height:100%"></video></div>`));
         });
@@ -297,21 +282,16 @@
         function sendGlobal(){ const t=document.getElementById('g-input').value; if(t){socket.emit('send_global_msg',{text:t,author:currentUser.name,email:currentUser.email,avatar:currentUser.avatar});document.getElementById('g-input').value='';} }
         socket.on('receive_global_msg', renderGlobalMsg);
         function renderGlobalMsg(m) { const me=m.email===currentUser.email; document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}" onclick="openProfile('${m.email}')"><b>${me?'':m.author+':'}</b> ${m.text}</div></div>`; }
-        
         function sendAi(){ const t=document.getElementById('ai-input').value; if(t){ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-me">${t}</div>`; socket.emit('send_ai_msg',t); document.getElementById('ai-input').value=''; } }
         socket.on('receive_ai_msg', (m)=>{ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-other">${m.text}</div>`; });
-
-        // Private
-        socket.on('update_friends', (f) => {
-            document.getElementById('friends-list-view').innerHTML = f.map(u => `<div class="friend-item" style="padding:10px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:10px; cursor:pointer; display:flex; gap:10px; align-items:center" onclick="startChat('${u.email}', '${u.name}')"><img src="${u.avatar}" class="avatar"> <div><b>${u.name}</b><br><small style="color:#10b981; font-size:10px">${u.isOnline?'نشط الآن':'غير متصل'}</small></div></div>`).join('');
-        });
+        socket.on('update_friends', (f) => { document.getElementById('friends-list-view').innerHTML = f.map(u => `<div class="friend-item" style="padding:10px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:10px; cursor:pointer; display:flex; gap:10px; align-items:center" onclick="startChat('${u.email}', '${u.name}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join(''); });
         window.startChat = (e, n) => { currentPriv=e; navTo('chat'); switchChat('private'); document.getElementById('friends-list-view').style.display='none'; document.getElementById('priv-convo').style.display='flex'; document.getElementById('p-name-header').innerText=n; document.getElementById('p-msgs').innerHTML=''; socket.emit('get_private_msgs',{u1:currentUser.email, u2:e}); }
         function closePriv(){ document.getElementById('priv-convo').style.display='none'; document.getElementById('friends-list-view').style.display='block'; currentPriv=null; }
         function sendPriv(){ const t=document.getElementById('p-input').value; if(t){ socket.emit('send_private_msg',{from:currentUser.email, to:currentPriv, text:t}); document.getElementById('p-input').value=''; } }
         socket.on('load_private_msgs', (ms)=>{ document.getElementById('p-msgs').innerHTML = ms.map(m=>`<div class="msg-bubble ${m.from===currentUser.email?'msg-me':'msg-other'}">${m.text}</div>`).join(''); });
         socket.on('receive_private_msg', (m)=>{ 
-            if(m.from===currentPriv || m.from===currentUser.email) document.getElementById('p-msgs').innerHTML+=`<div class="msg-bubble ${m.from===currentUser.email?'msg-me':'msg-other'}">${m.text}</div>`; 
-            else document.getElementById('nav-msg-badge').style.display='block'; 
+            if(m.from===currentPriv || m.from===currentUser.email) document.getElementById('p-msgs').innerHTML+=`<div class="msg-bubble ${m.from===currentUser.email?'msg-me':'msg-other'}">${m.text}</div>`;
+            else document.getElementById('nav-msg-badge').style.display='block';
         });
 
         // Reels
@@ -320,4 +300,4 @@
         socket.on('receive_reel', (r)=>{ document.getElementById('reels-container').insertAdjacentHTML('afterbegin', `<div class="reel-item" style="height:calc(100vh - 75px); background:black; display:flex; justify-content:center; border-bottom:1px solid #333; scroll-snap-align:start"><video src="${r.url}" controls style="width:100%; height:100%"></video></div>`); });
     </script>
 </body>
-                </html>
+                                                          </html>

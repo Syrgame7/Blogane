@@ -64,7 +64,7 @@ async function getAIResponse(prompt) {
     
     // قائمة الموديلات: نبدأ بالأكثر تحديداً (001) ثم العام
     const modelsToTry = [
-        "gemini-1.5-flash",      // الأحدث والأسرع
+        "gemini-2.5-flash",      // الأحدث والأسرع
         "gemini-1.5-flash-latest",
         "gemini-1.0-pro",        // القديم المستقر
         "gemini-pro"             // الاسم العام

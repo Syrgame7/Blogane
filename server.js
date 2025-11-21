@@ -9,23 +9,30 @@ const app = express();
 const server = http.createServer(app);
 
 // --- إعداد Gemini AI (الذكاء الاصطناعي الحقيقي) ---
-const API_KEY = process.env.GEMINI_API_KEY;
-let genAI = null;
-if (API_KEY) {
-    try { genAI = new GoogleGenerativeAI(API_KEY); } 
-    catch (e) { console.error("AI Init Fail"); }
-}
+// --- في بداية الملف مع التعريفات ---
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-async function askGemini(prompt) {
-    if (!genAI) return "عذراً، لم يتم ربط مفتاح الذكاء الاصطناعي في إعدادات السيرفر.";
+// ...
+
+// --- داخل دالة getAIResponse أو askGemini ---
+async function getAIResponse(prompt) {
+    // 1. التحقق من وجود المفتاح
+    if (!process.env.GEMINI_API_KEY) {
+        return "عذراً، لم يتم إعداد مفتاح الذكاء الاصطناعي في السيرفر.";
+    }
+
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const result = await model.generateContent("تحدث كأنك صديق عربي في تطبيق تواصل اجتماعي، رد باختصار وود: " + prompt);
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        
+        // التغيير هنا: استخدام الموديل الحديث
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text();
     } catch (error) {
         console.error("Gemini Error:", error);
-        return "واجهت مشكلة في التفكير، حاول مرة أخرى!";
+        return "عذراً، حدث خطأ في الاتصال بالذكاء الاصطناعي. حاول مرة أخرى.";
     }
 }
 

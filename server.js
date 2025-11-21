@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
+// استدعاء مكتبة الذكاء الاصطناعي
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
@@ -10,40 +11,30 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: { origin: "*" },
-    maxHttpBufferSize: 50 * 1024 * 1024 
+    maxHttpBufferSize: 50 * 1024 * 1024 // 50 MB
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- 1. إعداد الذكاء الاصطناعي (المصحح) ---
-const API_KEY = process.env.GEMINI_API_KEY;
-let genAI = null;
-
-if (API_KEY) {
-    try {
-        genAI = new GoogleGenerativeAI(API_KEY);
-    } catch (e) {
-        console.error("Failed to init AI");
-    }
-}
+// --- إعداد الذكاء الاصطناعي (Gemini 1.5 Flash) ---
+// تأكد من وضع GEMINI_API_KEY في إعدادات Render
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 async function getAIResponse(prompt) {
-    if (!genAI) return "عذراً، أنا في وضع الصيانة حالياً (المفتاح مفقود).";
-    
+    if (!genAI) return "عذراً، لم يتم تفعيل مفتاح الذكاء الاصطناعي في السيرفر.";
     try {
-        // التغيير هنا: استخدام gemini-pro لأنه الأضمن حالياً
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        
+        // التعديل هنا: استخدام الموديل الأحدث لتجنب خطأ 404
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text();
     } catch (error) {
         console.error("AI Error:", error.message);
-        return "حدث خطأ بسيط في الاتصال، هل يمكنك إعادة السؤال؟ 🤖"; 
+        return "أواجه مشكلة تقنية حالياً، سأعود قريباً! 🤖";
     }
 }
 
-// --- 2. إعداد الملفات والبيانات ---
+// --- إدارة الملفات ---
 const DATA_FILE = 'database.json';
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 
@@ -66,8 +57,8 @@ loadData();
 
 function saveData() {
     try {
-        if(db.globalMessages.length > 400) db.globalMessages = db.globalMessages.slice(-400);
-        if(db.posts.length > 150) db.posts = db.posts.slice(0, 150);
+        if(db.globalMessages.length > 500) db.globalMessages = db.globalMessages.slice(-500);
+        if(db.posts.length > 200) db.posts = db.posts.slice(0, 200);
         fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
     } catch (e) { console.error("Save Error"); }
 }
@@ -84,52 +75,58 @@ function saveBase64ToFile(base64Data, prefix) {
     } catch (e) { return null; }
 }
 
-// --- Keep-Alive ---
+// --- منع توقف السيرفر (Keep-Alive) ---
 app.get('/ping', (req, res) => res.send('Pong'));
 setInterval(() => { try { http.get(`http://127.0.0.1:${process.env.PORT||3000}/ping`).on('error',()=>{}); } catch(e){} }, 240000);
 
-// --- Bots ---
-const firstNames = ["أحمد", "محمد", "محمود", "علي", "عمر", "خالد", "يوسف", "إبراهيم", "حسن", "سعيد", "مصطفى", "عبدالله", "عبدالرحمن", "كريم", "طارق", "زياد", "ياسر", "سامي", "فهد", "سلمان", "فيصل", "ماجد", "نايف", "وليد", "هاني", "جمال", "رامي", "سمير", "عادل", "نور", "سارة", "ليلى", "مريم", "فاطمة", "عائشة", "زينب", "هدى", "منى", "هند", "سلمى", "ندى", "ياسمين", "رنا", "داليا", "ريم", "أمل", "حنان", "سعاد", "وفاء", "لمياء", "شروق", "آية", "منال", "نهى", "سمر", "عبير", "غادة", "نجوى", "أسماء"];
-const lastNames = ["الشمري", "الغامدي", "المصري", "العلي", "محمد", "أحمد", "محمود", "حسن", "إبراهيم", "سعيد", "كمال", "جمال", "فوزي", "صلاح", "يوسف", "عبدالله", "عمر", "خالد", "سالم", "غانم", "حامد", "نور"];
-const botContents = ["صباح الخير 🌹", "صورة جميلة", "سبحان الله", "الحمد لله", "مين موجود؟", "تطبيق رائع", "مساء الورد", "جمعة مباركة", "تحيا مصر", "السعودية ❤️"];
+// --- إعداد البوتات (80 بوت) ---
+const botFirstNames = ["أحمد", "سارة", "محمد", "نور", "خالد", "ليلى", "يوسف", "مريم", "عمر", "فاطمة", "علي", "هدى", "إبراهيم", "منى", "حسن", "زينب", "سعيد", "سلمى", "مصطفى", "رنا"];
+const botLastNames = ["المصري", "الغامدي", "علي", "حسن", "إبراهيم", "محمود", "سعيد", "كمال", "صلاح", "يوسف", "عبدالله", "عمر", "سالم", "غانم", "حامد", "نور"];
+const botBios = ["أحب الحياة 🌸", "مبرمج ومصمم 💻", "عاشق القهوة ☕", "طالب علم 📚", "مهندس", "طبيب", "سبحان الله", "مصور فوتوغرافي 📸"];
 
-// Generate Bots
+// إنشاء البوتات
 for(let i=0; i<80; i++) {
-    const email = `user_${i}@blogane.com`;
+    const email = `bot${i}@blogane.com`;
     if(!db.users.find(u => u.email === email)) {
-        const fname = firstNames[Math.floor(Math.random() * firstNames.length)];
-        const lname = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const fname = botFirstNames[Math.floor(Math.random() * botFirstNames.length)];
+        const lname = botLastNames[Math.floor(Math.random() * botLastNames.length)];
         db.users.push({
             id: Date.now() + i, name: `${fname} ${lname}`, email: email, password: 'bot',
             avatar: `https://ui-avatars.com/api/?name=${fname}+${lname}&background=random&color=fff&size=128`,
-            bio: 'عضو نشط', isBot: true, isOnline: true
+            bio: botBios[Math.floor(Math.random() * botBios.length)], 
+            isBot: true, isOnline: true
         });
     }
 }
 saveData();
 
-// Bot Activity
+// محرك تفاعل البوتات (نشر، إعجاب، تعليق)
+const botPostsContent = ["صباح الخير 🌹", "جمعة مباركة", "مساء الورد", "مين فاضي نتكلم؟", "صورة جميلة", "سبحان الله", "الحمد لله", "تصبحون على خير", "الجو رائع اليوم"];
 setInterval(() => {
     try {
         const action = Math.random();
+        // اختيار بوت عشوائي
         const botsOnly = db.users.filter(u => u.isBot);
         if(botsOnly.length === 0) return;
         const botUser = botsOnly[Math.floor(Math.random() * botsOnly.length)];
 
-        if (action < 0.1) { // Post
+        if (action < 0.15) { // نشر
             const newPost = {
                 id: Date.now(), author: botUser.name, email: botUser.email, avatar: botUser.avatar,
-                content: botContents[Math.floor(Math.random()*botContents.length)], media: null,
+                content: botPostsContent[Math.floor(Math.random() * botPostsContent.length)], media: null,
                 likes: [], comments: [], date: new Date().toISOString(), context: 'general', contextId: null
             };
             db.posts.unshift(newPost); io.emit('receive_post', newPost);
         } 
-        else if (action < 0.5 && db.posts.length > 0) { // Like
-            const p = db.posts[Math.floor(Math.random()*db.posts.length)];
-            if(p && !p.likes.includes(botUser.email)) { p.likes.push(botUser.email); io.emit('update_likes', {id: p.id, type: 'post', likes: p.likes}); }
+        else if (action < 0.5 && db.posts.length > 0) { // لايك
+            const p = db.posts[Math.floor(Math.random() * db.posts.length)];
+            if(p && !p.likes.includes(botUser.email)) {
+                p.likes.push(botUser.email);
+                io.emit('update_likes', {id: p.id, type: 'post', likes: p.likes});
+            }
         }
-        else if (action > 0.95) { // Chat
-            const m = { id:Date.now(), text:"منورين ❤️", image:null, author:botUser.name, email:botUser.email, avatar:botUser.avatar, date:new Date().toISOString() };
+        else if (action > 0.95) { // رسالة عامة
+            const m = { id:Date.now(), text:"منورين يا جماعة 👋", image:null, author:botUser.name, email:botUser.email, avatar:botUser.avatar, date:new Date().toISOString() };
             db.globalMessages.push(m); io.emit('receive_global_msg', m);
         }
         saveData();
@@ -156,42 +153,43 @@ io.on('connection', (socket) => {
         } else { socket.emit('auth_error', 'بيانات خاطئة'); }
     });
 
-    // AI
+    // AI Chat & Bots Reply
     socket.on('send_ai_msg', async (text) => {
         const reply = await getAIResponse(text);
         socket.emit('receive_ai_msg', { text: reply });
     });
 
-    // Private & Bot Reply
     socket.on('send_private_msg', (d) => {
         const m = { ...d, id: Date.now(), date: new Date().toISOString() };
         db.privateMessages.push(m); saveData();
         socket.emit('receive_private_msg', m);
         
+        // إذا كان المستقبل بوت، يرد بالذكاء الاصطناعي
         const target = db.users.find(u => u.email === d.to);
         if(target && target.isBot) {
             setTimeout(async () => {
-                const replyText = await getAIResponse(d.text); // Bot uses AI
-                const reply = { id: Date.now(), from: d.to, to: d.from, text: replyText, date: new Date().toISOString() };
-                db.privateMessages.push(reply); saveData();
-                socket.emit('receive_private_msg', reply);
-            }, 3000);
+                const replyText = await getAIResponse(d.text);
+                const botReply = { id:Date.now(), from:d.to, to:d.from, text:replyText, date:new Date().toISOString() };
+                db.privateMessages.push(botReply); saveData();
+                socket.emit('receive_private_msg', botReply);
+            }, 2000);
         } else {
             if(connectedSockets[d.to]) io.to(connectedSockets[d.to]).emit('receive_private_msg', m);
         }
     });
-    socket.on('get_private_msgs', ({u1, u2}) => socket.emit('load_private_msgs', db.privateMessages.filter(m=>(m.from===u1&&m.to===u2)||(m.from===u2&&m.to===u1))));
 
-    // Friends (Bot Auto Accept)
+    // Friend Requests (Bot Auto-Accept)
     socket.on('send_friend_request', (d) => {
         if(d.from !== d.to && !db.friendRequests.find(r => r.from === d.from && r.to === d.to)) {
-            db.friendRequests.push({ from: d.from, to: d.to }); saveData();
+            db.friendRequests.push({ from: d.from, to: d.to });
+            saveData();
+            
             const target = db.users.find(u => u.email === d.to);
             if(target && target.isBot) {
                 setTimeout(() => {
                     db.friendRequests = db.friendRequests.filter(r => !(r.from === d.from && r.to === d.to));
-                    db.friendships.push({ user1: d.from, user2: d.to }); saveData();
-                    updateFriendsList(d.from);
+                    db.friendships.push({ user1: d.from, user2: d.to });
+                    saveData(); updateFriendsList(d.from);
                 }, 2000);
             } else {
                 if(connectedSockets[d.to]) io.to(connectedSockets[d.to]).emit('new_req_alert');
@@ -199,6 +197,7 @@ io.on('connection', (socket) => {
             }
         }
     });
+
     socket.on('respond_friend_request', (d) => {
         db.friendRequests = db.friendRequests.filter(r => !(r.to === d.userEmail && r.from === d.requesterEmail));
         if(d.accept) { db.friendships.push({ user1: d.userEmail, user2: d.requesterEmail }); updateFriendsList(d.userEmail); updateFriendsList(d.requesterEmail); }
@@ -219,6 +218,7 @@ io.on('connection', (socket) => {
 
     // General
     socket.on('send_global_msg', (d) => { let u=d.image?saveBase64ToFile(d.image,'chat'):null; const m={...d,image:u,id:Date.now(),date:new Date().toISOString()}; db.globalMessages.push(m); saveData(); io.emit('receive_global_msg', m); });
+    socket.on('get_private_msgs', ({u1, u2}) => socket.emit('load_private_msgs', db.privateMessages.filter(m=>(m.from===u1&&m.to===u2)||(m.from===u2&&m.to===u1))));
     socket.on('new_post', (d) => { let u=d.media&&d.media.startsWith('data:')?saveBase64ToFile(d.media,'post'):null; const p={...d,id:Date.now(),media:u,likes:[],comments:[],date:new Date().toISOString()}; db.posts.unshift(p); saveData(); io.emit('receive_post', p); socket.emit('upload_complete'); });
     socket.on('toggle_like', ({id, type, userEmail}) => { let x=(type==='reel'?db.reels:db.posts).find(i=>i.id==id); if(x){ if(x.likes.includes(userEmail))x.likes=x.likes.filter(e=>e!==userEmail); else x.likes.push(userEmail); saveData(); io.emit('update_likes', {id, type, likes:x.likes}); } });
     socket.on('add_comment', (d) => { const p=db.posts.find(x=>x.id==d.postId); if(p){ p.comments.push({id:Date.now(), ...d}); saveData(); io.emit('update_comments', {postId:d.postId, comments:p.comments}); } });
@@ -229,7 +229,6 @@ io.on('connection', (socket) => {
     socket.on('delete_group', ({groupId, email}) => { const i=db.groups.findIndex(g=>g.id===groupId); if(i!==-1 && db.groups[i].owner===email){ db.groups.splice(i,1); saveData(); io.emit('update_groups', db.groups); socket.emit('delete_success'); } });
     socket.on('delete_page', ({pageId, email}) => { const i=db.pages.findIndex(p=>p.id===pageId); if(i!==-1 && db.pages[i].owner===email){ db.pages.splice(i,1); saveData(); io.emit('update_pages', db.pages); socket.emit('delete_success'); } });
     socket.on('get_context_posts', ({context, contextId}) => { socket.emit('load_posts', db.posts.filter(p => p.context === context && p.contextId === contextId)); });
-    
     socket.on('new_reel', (d) => { let u=saveBase64ToFile(d.videoBase64,'reel'); if(u){ const r={id:Date.now(),url:u,desc:d.desc,author:d.author,avatar:d.avatar,email:d.email,likes:[],comments:[]}; db.reels.unshift(r); saveData(); io.emit('receive_reel', {...r,videoBase64:null}); socket.emit('upload_complete'); } });
     socket.on('upload_reel_start', ({name}) => { const f=`reel_${Date.now()}_${Math.floor(Math.random()*1000)}${path.extname(name)}`; fs.open(path.join(UPLOAD_DIR,f),'w',(e,fd)=>{if(!e)fs.close(fd,()=>socket.emit('upload_ready',{tempFileName:f}));}); });
     socket.on('upload_reel_chunk', ({fileName, data}) => { try{fs.appendFileSync(path.join(UPLOAD_DIR,fileName), data);}catch(e){} });
@@ -242,4 +241,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server on ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on ${PORT}`));

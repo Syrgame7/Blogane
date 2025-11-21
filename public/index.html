@@ -3,215 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blogane Ultimate</title>
+    <title>Blogane</title>
     <script src="/socket.io/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #020617;
-            --panel: #1e293b;
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --accent: #f43f5e;
-            --text: #f1f5f9;
-            --text-sec: #94a3b8;
-            --border: 1px solid rgba(255,255,255,0.08);
-            --glass: blur(12px);
+            --bg: #0f172a;
+            --panel: rgba(30, 41, 59, 0.75);
+            --primary: #8b5cf6;
+            --accent: #ec4899;
+            --text: #f8fafc;
+            --gray: #94a3b8;
+            --glass: blur(16px);
+            --border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            background-color: var(--bg);
-            background-image: radial-gradient(circle at top right, #1e1b4b 0%, transparent 40%), radial-gradient(circle at bottom left, #312e81 0%, transparent 40%);
-            color: var(--text);
-            height: 100vh; display: flex; flex-direction: column; overflow: hidden;
-        }
+        body { background-color: var(--bg); background-image: radial-gradient(at top right, #1e1b4b 0%, transparent 50%), radial-gradient(at bottom left, #312e81 0%, transparent 50%); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* --- Atomic Classes --- */
-        .flex-center { display: flex; align-items: center; justify-content: center; }
-        .flex-between { display: flex; align-items: center; justify-content: space-between; }
-        .btn { 
-            background: linear-gradient(135deg, var(--primary), var(--accent)); 
-            color: white; border: none; padding: 10px 20px; border-radius: 14px; 
-            font-weight: 700; cursor: pointer; transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
-        }
+        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 16px; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn:active { transform: scale(0.95); }
-        .avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
-        
-        /* --- Components --- */
-        .card {
-            background: rgba(30, 41, 59, 0.6); backdrop-filter: var(--glass);
-            border: var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px;
-        }
-        .input-box {
-            width: 100%; background: rgba(0,0,0,0.3); border: var(--border);
-            padding: 12px 15px; border-radius: 12px; color: white; outline: none; transition: 0.3s;
-        }
-        .input-box:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
+        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 18px; padding: 15px; margin-bottom: 15px; }
+        .input-box { width: 100%; background: rgba(0,0,0,0.3); border: var(--border); padding: 12px; border-radius: 12px; color: white; outline: none; }
+        .avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
 
-        /* --- Layout --- */
-        .header { 
-            padding: 15px 20px; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 100; border-bottom: var(--border);
-        }
+        .bottom-nav { height: 70px; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); padding-bottom: 5px; }
+        .nav-item { color: var(--gray); font-size: 22px; text-align: center; cursor: pointer; transition: 0.3s; position: relative; }
+        .nav-item.active { color: var(--primary); transform: translateY(-5px); }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--accent); color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; display: none; }
+
         .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 90px; }
         .view.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        
+        .header { padding: 15px 20px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
 
-        /* --- Bottom Nav --- */
-        .bottom-nav {
-            height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px);
-            position: fixed; bottom: 0; width: 100%; z-index: 500;
-            border-top: var(--border); border-radius: 20px 20px 0 0;
-        }
-        .nav-item { color: var(--text-sec); font-size: 22px; cursor: pointer; transition: 0.3s; position: relative; }
-        .nav-item.active { color: var(--primary); transform: translateY(-5px); text-shadow: 0 0 15px var(--primary); }
-        .badge { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; }
-
-        /* --- Post & Comments --- */
-        .post-header { cursor: pointer; }
-        .post-header:hover b { color: var(--primary); text-decoration: underline; }
-        .comments-section { display: none; margin-top: 15px; padding-top: 15px; border-top: var(--border); }
+        /* Comments */
+        .comments-area { display: none; margin-top: 15px; padding-top: 15px; border-top: var(--border); animation: slide 0.2s; }
+        @keyframes slide { from{transform:translateY(-10px);opacity:0} to{transform:translateY(0);opacity:1} }
         .comment-item { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; }
         .comment-bubble { background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 12px; flex: 1; }
 
-        /* --- Chat --- */
-        .chat-tabs { padding: 10px; background: transparent; gap: 10px; }
-        .chat-tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--text-sec); border: var(--border); cursor: pointer; }
-        .chat-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-        .msg-bubble { padding: 10px 15px; border-radius: 18px; max-width: 80%; margin-bottom: 8px; font-size: 14px; }
-        .msg-me { background: var(--primary-dark); align-self: flex-start; border-bottom-right-radius: 4px; }
-        .msg-other { background: #334155; align-self: flex-end; border-bottom-left-radius: 4px; }
+        /* Profile */
+        .profile-cover { height: 150px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 30px 30px; position: relative; margin-bottom: 60px; }
+        .profile-pic-lg { width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--bg); position: absolute; bottom: -50px; right: 50%; transform: translateX(50%); object-fit: cover; }
 
-        /* --- Profile Page --- */
-        .profile-cover { height: 160px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 30px 30px; position: relative; margin-bottom: 60px; }
-        .profile-pic-lg { width: 110px; height: 110px; border-radius: 50%; border: 5px solid var(--bg); position: absolute; bottom: -55px; right: 50%; transform: translateX(50%); object-fit: cover; }
-        
-        /* --- Modal & Loader --- */
+        /* Chat */
+        .chat-tabs { display: flex; gap: 10px; padding: 10px; }
+        .chat-tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--gray); cursor: pointer; border: var(--border); }
+        .chat-tab.active { background: var(--primary); color: white; }
+        .msg-bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; margin-bottom: 8px; font-size: 14px; }
+        .msg-me { background: var(--primary); align-self: flex-start; }
+        .msg-other { background: #334155; align-self: flex-end; }
+
         .loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s infinite; }
-        @keyframes spin { to {transform: rotate(360deg)} }
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
-        .modal-box { background: #1e293b; width: 90%; max-width: 400px; padding: 25px; border-radius: 24px; border: var(--border); }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-box { background: #1e293b; width: 90%; max-width: 400px; padding: 25px; border-radius: 20px; border: var(--border); }
     </style>
 </head>
 <body>
 
-    <div class="loader-overlay" id="loader"><div class="spinner"></div><p style="margin-top:15px;color:white">جاري التحميل...</p></div>
+    <div class="loader-overlay" id="loader"><div class="spinner"></div><p style="margin-top:15px; color:white">جاري العمل...</p></div>
 
-    <!-- Auth Modal -->
-    <div class="modal-overlay" id="auth-modal" style="display: flex;">
+    <!-- Auth -->
+    <div id="auth-modal" class="modal-overlay" style="display: flex;">
         <div class="modal-box" style="text-align: center;">
-            <h1 style="font-size: 35px; margin-bottom: 10px; color: var(--primary);">Blogane</h1>
-            <div id="reg-fields" style="display:none"><input id="reg-name" class="input-box" placeholder="الاسم الكامل" style="margin-bottom:10px"></div>
-            <input id="email" class="input-box" placeholder="البريد الإلكتروني" style="margin-bottom:10px">
+            <h1 style="font-size:35px; color:var(--primary); margin-bottom:10px">Blogane</h1>
+            <div id="reg-fields" style="display:none"><input id="reg-name" class="input-box" placeholder="الاسم" style="margin-bottom:10px"></div>
+            <input id="email" class="input-box" placeholder="البريد" style="margin-bottom:10px">
             <input id="pass" type="password" class="input-box" placeholder="كلمة المرور" style="margin-bottom:15px">
             <button class="btn" style="width:100%" onclick="auth()">دخول</button>
-            <p style="margin-top:20px; cursor:pointer; color:var(--text-sec)" onclick="toggleAuth()">ليس لديك حساب؟ سجل الآن</p>
+            <p style="margin-top:20px; cursor:pointer; color:var(--gray)" onclick="toggleAuth()">حساب جديد؟</p>
         </div>
     </div>
 
     <div class="modal-overlay" id="generic-modal"><div class="modal-box" id="modal-content"></div></div>
 
-    <!-- VIEW 1: HOME -->
+    <!-- 1. HOME -->
     <div id="view-home" class="view active">
-        <div class="header flex-between">
-            <h2>الرئيسية</h2>
-            <img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)">
+        <div class="header">
+            <h2>الرئيسية</h2><img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)">
+        </div>
+        <div id="ctx-banner" style="display:none; padding:15px; background:linear-gradient(to right, var(--primary), var(--accent)); text-align:center;">
+            <h3 id="ctx-title" style="color:white;"></h3>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:10px">
+                <button id="ctx-del" class="btn" style="background:#ef4444; font-size:12px; display:none" onclick="deleteContext()">حذف</button>
+                <button class="btn" style="background:rgba(0,0,0,0.3); font-size:12px" onclick="leaveContext()">خروج</button>
+            </div>
         </div>
         <div style="padding: 15px;">
             <div class="card">
-                <div class="flex-center" style="gap:10px"><img src="" id="my-avatar" class="avatar"><input id="post-txt" class="input-box" style="border-radius:30px; border:none; background:rgba(255,255,255,0.05)" placeholder="بماذا تفكر؟"></div>
-                <div class="flex-between" style="margin-top:15px">
-                    <label style="color:#34d399; cursor:pointer; font-weight:bold" class="flex-center"><i class="fas fa-image" style="margin-left:5px"></i> صورة<input type="file" id="post-img" hidden></label>
-                    <button class="btn" style="padding:6px 20px" onclick="publishPost()">نشر</button>
+                <div style="display:flex; gap:10px"><img src="" id="my-avatar" class="avatar"><input id="post-txt" class="input-box" style="border-radius:25px; border:none" placeholder="بماذا تفكر؟"></div>
+                <div style="display:flex; justify-content:space-between; margin-top:15px">
+                    <label style="color:#10b981; cursor:pointer; display:flex; align-items:center; gap:5px"><i class="fas fa-image"></i> صورة<input type="file" id="post-img" hidden></label>
+                    <button class="btn" onclick="publishPost()">نشر</button>
                 </div>
-                <div id="post-preview" style="margin-top:10px"></div>
             </div>
             <div id="feed"></div>
         </div>
     </div>
 
-    <!-- VIEW 2: EXPLORE (Restored Features) -->
+    <!-- 2. EXPLORE -->
     <div id="view-explore" class="view">
         <div class="header"><h2>استكشف</h2></div>
         <div style="padding: 15px;">
-            
             <!-- Friend Requests -->
-            <div class="card" id="requests-container">
-                <h4 style="margin-bottom:10px; color:var(--accent)">طلبات الصداقة <span id="req-badge-count" style="background:var(--primary); padding:2px 6px; border-radius:5px; font-size:12px; color:white">0</span></h4>
+            <div class="card">
+                <h4 style="margin-bottom:10px; color:var(--accent)">طلبات الصداقة <span id="req-badge-count" style="background:var(--primary); padding:2px 6px; border-radius:5px; font-size:11px; color:white">0</span></h4>
                 <div id="req-list"></div>
-                <div class="flex-center" style="gap:10px; margin-top:10px">
-                    <input id="friend-email" class="input-box" style="margin:0" placeholder="إيميل الصديق">
-                    <button class="btn" onclick="addFriend()"><i class="fas fa-user-plus"></i></button>
-                </div>
+                <div style="display:flex; gap:10px; margin-top:10px"><input id="friend-email" class="input-box" style="margin:0" placeholder="إيميل الصديق"><button class="btn" onclick="addFriend()"><i class="fas fa-plus"></i></button></div>
             </div>
-
-            <!-- Groups & Pages -->
+            <!-- Create -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px">
                 <button class="btn" style="background:#334155" onclick="promptCreate('group')">إنشاء مجموعة</button>
                 <button class="btn" style="background:#334155" onclick="promptCreate('page')">إنشاء صفحة</button>
             </div>
-
-            <h4 style="color:var(--text-sec); margin-bottom:10px">المجموعات المقترحة</h4>
-            <div id="groups-list"></div>
-            <h4 style="color:var(--text-sec); margin:20px 0 10px">الصفحات الرائجة</h4>
-            <div id="pages-list"></div>
+            <h4 style="color:var(--gray); margin-bottom:10px">المجموعات</h4><div id="groups-list"></div>
+            <h4 style="color:var(--gray); margin:20px 0 10px">الصفحات</h4><div id="pages-list"></div>
         </div>
     </div>
 
-    <!-- VIEW 3: REELS -->
+    <!-- 3. REELS -->
     <div id="view-reels" class="view" style="background: black;">
         <div style="position:absolute; top:20px; left:20px; z-index:100"><button class="btn" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px)" onclick="showReelModal()">+ فيديو</button></div>
         <div id="reels-container" style="height:100%; overflow-y:scroll; scroll-snap-type:y mandatory"></div>
     </div>
 
-    <!-- VIEW 4: CHAT -->
+    <!-- 4. CHAT -->
     <div id="view-chat" class="view">
         <div class="header"><h2>الدردشة</h2></div>
-        <div class="chat-tabs flex-between">
+        <div class="chat-tabs">
             <div class="chat-tab active" onclick="switchChat('global')" id="tab-global">عامة</div>
-            <div class="chat-tab" onclick="switchChat('private')" id="tab-private">الخاص</div>
+            <div class="chat-tab" onclick="switchChat('private')" id="tab-private">الأصدقاء</div>
             <div class="chat-tab" onclick="switchChat('ai')" id="tab-ai">AI</div>
         </div>
-        
-        <!-- Global -->
         <div id="chat-global" style="height:calc(100% - 135px); display:flex; flex-direction:column">
-            <div id="g-msgs" style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column"></div>
-            <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="g-input" class="input-box" style="margin:0" placeholder="اكتب..."><button class="btn" onclick="sendGlobal()">➤</button></div>
+            <div id="g-msgs" style="flex:1; overflow-y:auto; padding:15px"></div>
+            <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="g-input" class="input-box" placeholder="اكتب..."><button class="btn" onclick="sendGlobal()">➤</button></div>
         </div>
-
-        <!-- Private -->
         <div id="chat-private" style="height:calc(100% - 135px); display:none; flex-direction:column">
             <div id="friends-list-view" style="padding:15px; flex:1; overflow-y:auto"></div>
             <div id="priv-convo" style="display:none; height:100%; flex-direction:column">
                 <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px; align-items:center"><button class="btn" style="padding:5px 10px" onclick="closePriv()">عودة</button> <b id="p-name-header"></b></div>
-                <div id="p-msgs" style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column"></div>
-                <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="p-input" class="input-box" style="margin:0" placeholder="خاص..."><button class="btn" onclick="sendPriv()">➤</button></div>
+                <div id="p-msgs" style="flex:1; overflow-y:auto; padding:15px"></div>
+                <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="p-input" class="input-box" placeholder="خاص..."><button class="btn" onclick="sendPriv()">➤</button></div>
             </div>
         </div>
-
-        <!-- AI -->
         <div id="chat-ai" style="height:calc(100% - 135px); display:none; flex-direction:column">
-            <div id="ai-msgs" style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column"></div>
-            <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="ai-input" class="input-box" style="margin:0" placeholder="اسأل AI..."><button class="btn" onclick="sendAi()">➤</button></div>
+            <div id="ai-msgs" style="flex:1; overflow-y:auto; padding:15px"></div>
+            <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="ai-input" class="input-box" placeholder="اسأل AI..."><button class="btn" onclick="sendAi()">➤</button></div>
         </div>
     </div>
 
-    <!-- VIEW 5: PROFILE (Dynamic) -->
+    <!-- 5. PROFILE (Dynamic for Everyone) -->
     <div id="view-profile" class="view">
-        <div class="profile-cover">
-            <img src="" id="p-avatar" class="profile-pic-lg">
-        </div>
+        <div class="profile-cover"><img src="" id="p-avatar" class="profile-pic-lg"></div>
         <div style="text-align:center; padding:60px 20px 0">
             <h2 id="p-name"></h2>
-            <p id="p-bio" style="color:var(--text-sec); font-size:14px"></p>
-            <div id="profile-actions" style="margin-top:15px; display:flex; gap:10px; justify-content:center">
-                <!-- Buttons injected via JS -->
-            </div>
+            <p id="p-bio" style="color:var(--gray); font-size:14px; margin-bottom:15px"></p>
+            <div id="profile-actions"></div>
         </div>
         <div style="padding:20px">
             <h3 style="color:var(--primary); margin-bottom:15px; border-bottom:var(--border); padding-bottom:10px">المنشورات</h3>
@@ -219,96 +171,73 @@
         </div>
     </div>
 
-    <!-- NAV -->
-    <nav class="bottom-nav flex-between">
+    <nav class="bottom-nav">
         <div class="nav-item active" onclick="navTo('home', this)"><i class="fas fa-home"></i><span>الرئيسية</span></div>
-        <div class="nav-item" onclick="navTo('explore', this)">
-            <i class="fas fa-compass"></i><span>استكشف</span>
-            <div class="badge" id="nav-req-badge" style="display:none">0</div>
-        </div>
+        <div class="nav-item" onclick="navTo('explore', this)"><i class="fas fa-compass"></i><span>استكشف</span><div class="badge" id="nav-req-badge">0</div></div>
         <div class="nav-item" onclick="navTo('reels', this)"><i class="fas fa-play-circle" style="color:var(--accent)"></i><span style="color:var(--accent)">ريلز</span></div>
         <div class="nav-item" onclick="navTo('chat', this)"><i class="fas fa-comments"></i><span>الدردشة</span></div>
-        <div class="nav-item" onclick="openProfile(currentUser.email, this)"><i class="fas fa-user"></i><span>ملفي</span></div>
+        <div class="nav-item" onclick="openProfile(currentUser.email, this)"><i class="fas fa-user"></i><span>أنا</span></div>
     </nav>
 
     <script>
         const socket = io();
-        let currentUser = null;
-        let isReg = false;
-        let currentPriv = null;
+        let currentUser = null, currentContext = 'general', currentContextId = null, isReg = false, currentPriv = null;
 
-        // --- Core Logic ---
         window.onload = () => { const s=localStorage.getItem('u'); if(s) socket.emit('login', JSON.parse(s)); }
-        function navTo(v, el) {
-            document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
-            document.getElementById('view-'+v).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
-            if(el) el.classList.add('active');
-        }
+        function navTo(v, el) { document.querySelectorAll('.view').forEach(x=>x.classList.remove('active')); document.getElementById('view-'+v).classList.add('active'); document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); if(el) el.classList.add('active'); }
         function showLoader(t){ document.getElementById('loader').style.display='flex'; }
         function hideLoader(){ document.getElementById('loader').style.display='none'; }
         function showModal(h){ document.getElementById('modal-content').innerHTML=h; document.getElementById('generic-modal').style.display='flex'; }
         function closeModal(){ document.getElementById('generic-modal').style.display='none'; }
 
-        // --- Auth ---
+        // Auth
         function toggleAuth(){ isReg=!isReg; document.getElementById('reg-fields').style.display=isReg?'block':'none'; }
         function auth(){ const e=document.getElementById('email').value, p=document.getElementById('pass').value; if(isReg) socket.emit('register', {name:document.getElementById('reg-name').value, email:e, password:p}); else socket.emit('login', {email:e, password:p}); }
         socket.on('auth_success', (u)=>{ currentUser=u; localStorage.setItem('u', JSON.stringify({email:u.email, password:u.password})); document.getElementById('auth-modal').style.display='none'; updateMyUI(); });
         function updateMyUI(){ document.getElementById('my-avatar').src=currentUser.avatar; document.getElementById('header-avatar').src=currentUser.avatar; }
 
-        // --- Profile System (Universal) ---
+        // Profile (Universal)
         window.openProfile = (email, el) => {
             if(el) navTo('profile', el); else navTo('profile');
-            showLoader('جاري تحميل الملف...');
+            showLoader('جاري التحميل...');
             socket.emit('get_profile_info', email);
         }
         socket.on('open_profile_view', ({user, posts}) => {
             hideLoader();
             document.getElementById('p-avatar').src = user.avatar;
-            document.getElementById('p-name').innerText = user.name + (user.isBot ? ' 🤖' : '');
-            document.getElementById('p-bio').innerText = user.bio || 'لا توجد نبذة';
-            
+            document.getElementById('p-name').innerText = user.name;
+            document.getElementById('p-bio').innerText = user.bio || '';
             const acts = document.getElementById('profile-actions');
-            acts.innerHTML = '';
             if(user.email === currentUser.email) {
-                acts.innerHTML = `<button class="btn" style="background:rgba(255,255,255,0.1)" onclick="editProfile()">تعديل</button>`;
+                acts.innerHTML = `<button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showEditProfile()">تعديل الملف</button>`;
             } else {
-                acts.innerHTML = `
-                    <button class="btn" onclick="socket.emit('send_friend_request', {from:currentUser.email, to:'${user.email}'}); alert('تم الإرسال')">إضافة صديق</button>
-                    <button class="btn" style="background:var(--secondary)" onclick="startChat('${user.email}', '${user.name}')">مراسلة</button>
-                `;
+                acts.innerHTML = `<button class="btn" onclick="socket.emit('send_friend_request', {from:currentUser.email, to:'${user.email}'}); alert('تم الإرسال')">إضافة صديق</button> <button class="btn" style="background:var(--accent)" onclick="startChat('${user.email}', '${user.name}')">مراسلة</button>`;
             }
-
-            const pCont = document.getElementById('profile-posts');
-            pCont.innerHTML = '';
-            if(posts.length === 0) pCont.innerHTML = '<p style="text-align:center; color:var(--text-sec)">لا توجد منشورات</p>';
+            const pCont = document.getElementById('profile-posts'); pCont.innerHTML = '';
             posts.reverse().forEach(p => renderPost(p, 'profile-posts'));
         });
-
-        function editProfile() { showModal(`<h3>تعديل</h3><input id="e-n" class="input-box" value="${currentUser.name}"><button class="btn" onclick="saveP()">حفظ</button><button class="btn" style="background:none" onclick="closeModal()">إلغاء</button>`); }
+        function showEditProfile(){ showModal(`<h3>تعديل</h3><input id="e-n" class="input-box" value="${currentUser.name}"><button class="btn" onclick="saveP()">حفظ</button><button class="btn" style="background:none" onclick="closeModal()">إلغاء</button>`); }
         function saveP(){ socket.emit('update_profile', {email:currentUser.email, name:document.getElementById('e-n').value}); closeModal(); }
-        
-        // --- Posts ---
+        socket.on('profile_updated_success', (u)=>{ currentUser=u; updateMyUI(); openProfile(u.email); });
+
+        // Posts
         let postImg=null;
-        document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result; document.getElementById('post-preview').innerHTML=`<img src="${postImg}" style="height:80px;border-radius:10px">`}; r.readAsDataURL(f);} });
-        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ showLoader('نشر...'); socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:'general', contextId:null}); document.getElementById('post-txt').value=''; postImg=null; document.getElementById('post-preview').innerHTML=''; } }
+        document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result;}; r.readAsDataURL(f);} });
+        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ showLoader('نشر...'); socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:currentContext, contextId:currentContextId}); document.getElementById('post-txt').value=''; postImg=null; } }
         socket.on('upload_complete', hideLoader);
 
         function renderPost(p, target) {
             const l = p.likes.includes(currentUser.email);
             const html = `
             <div class="card">
-                <div class="post-header flex-center" style="justify-content:flex-start; gap:10px" onclick="openProfile('${p.email}')">
-                    <img src="${p.avatar}" class="avatar">
-                    <div><b>${p.author}</b><br><small style="color:var(--text-sec); font-size:11px">${new Date(p.date).toLocaleTimeString()}</small></div>
-                </div>
-                <p style="margin-top:10px">${p.content||''}</p>
-                ${p.media?`<img src="${p.media}" class="post-img">`:''}
+                <div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author}</b><br><small style="color:var(--gray); font-size:11px">${new Date(p.date).toLocaleTimeString()}</small></div></div>
+                <p style="margin-top:10px; line-height:1.5">${p.content||''}</p>
+                ${p.media?`<img src="${p.media}" style="width:100%;border-radius:12px;margin-top:10px">`:''}
                 <div class="actions">
                     <div class="act-btn ${l?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})"><i class="${l?'fas':'far'} fa-heart"></i> <span id="l-${p.id}">${p.likes.length}</span></div>
                     <div class="act-btn" onclick="toggleC(${p.id})"><i class="far fa-comment"></i> <span>${p.comments.length}</span></div>
                 </div>
-                <div class="comments-section" id="com-${p.id}">
+                <div class="comments-area" id="com-${p.id}">
                     <div id="clist-${p.id}">${p.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble" onclick="openProfile('${c.userEmail}')"><b>${c.userName}</b><br>${c.text}</div></div>`).join('')}</div>
                     <div style="display:flex; gap:5px; margin-top:10px"><input id="cin-${p.id}" class="input-box" style="padding:8px" placeholder="تعليق.."><button class="btn" style="padding:5px 10px" onclick="sendC(${p.id})">➤</button></div>
                 </div>
@@ -319,44 +248,40 @@
         window.sendC=(id)=>{const t=document.getElementById(`cin-${id}`).value; if(t){socket.emit('add_comment',{postId:id, text:t, userEmail:currentUser.email, userName:currentUser.name, userAvatar:currentUser.avatar}); document.getElementById(`cin-${id}`).value='';}}
         socket.on('update_comments', (d)=>{ document.getElementById(`clist-${d.postId}`).innerHTML = d.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble"><b>${c.userName}</b><br>${c.text}</div></div>`).join(''); });
         socket.on('update_likes', (d)=>{ const e=document.getElementById(`l-${d.id}`); if(e)e.innerText=d.likes.length; });
-        socket.on('receive_post', (p)=>renderPost(p,'feed'));
+        socket.on('receive_post', (p)=>{ if(p.context===currentContext && p.contextId===currentContextId) renderPost(p,'feed'); });
         socket.on('load_posts', (ps)=>{ document.getElementById('feed').innerHTML=''; ps.reverse().forEach(p=>renderPost(p,'feed')); });
 
-        // --- Explore (Requests, Groups, Pages) ---
-        socket.on('update_requests', (reqs) => {
+        // Explore (Groups/Pages/Requests)
+        socket.on('init_data', (d) => {
+            document.getElementById('groups-list').innerHTML = d.groups.map(g=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join('');
+            document.getElementById('pages-list').innerHTML = d.pages.map(p=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join('');
+            updateReqs(d.friendRequests || []);
+            d.reels.forEach(r => document.getElementById('reels-container').insertAdjacentHTML('beforeend', `<div class="reel-item" style="height:calc(100vh - 70px); background:black; display:flex; justify-content:center; border-bottom:1px solid #333; scroll-snap-align:start"><video src="${r.url}" controls style="width:100%; height:100%"></video></div>`));
+        });
+        socket.on('update_groups', (gs) => { document.getElementById('groups-list').innerHTML = gs.map(g=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join(''); });
+        socket.on('update_pages', (ps) => { document.getElementById('pages-list').innerHTML = ps.map(p=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join(''); });
+        socket.on('update_requests', updateReqs);
+        function updateReqs(reqs) {
             document.getElementById('req-badge-count').innerText = reqs.length;
             document.getElementById('nav-req-badge').style.display = reqs.length?'block':'none';
-            document.getElementById('req-list').innerHTML = reqs.map(r => `
-                <div class="card flex-between" style="padding:10px; margin-bottom:5px">
-                    <div class="flex-center" style="gap:10px"><img src="${r.avatar}" class="avatar" style="width:35px;height:35px"> <span>${r.name}</span></div>
-                    <button class="btn" style="padding:5px 10px; font-size:12px" onclick="socket.emit('respond_friend_request',{userEmail:currentUser.email, requesterEmail:'${r.email}', accept:true})">قبول</button>
-                </div>
-            `).join('');
-        });
+            document.getElementById('req-list').innerHTML = reqs.map(r => `<div class="card flex-between" style="padding:10px; margin-bottom:5px"><div class="flex-center" style="gap:10px"><img src="${r.avatar}" class="avatar" style="width:35px;height:35px"> <span>${r.name}</span></div><button class="btn" style="padding:5px 10px; font-size:12px" onclick="socket.emit('respond_friend_request',{userEmail:currentUser.email, requesterEmail:'${r.email}', accept:true})">قبول</button></div>`).join('');
+        }
         function addFriend(){ socket.emit('send_friend_request', {from:currentUser.email, to:document.getElementById('friend-email').value}); document.getElementById('friend-email').value=''; alert('تم الإرسال'); }
         function promptCreate(t){ const n=prompt('الاسم:'); if(n) t==='group'?socket.emit('create_group',{name:n,desc:'',owner:currentUser.email}):socket.emit('create_page',{name:n,owner:currentUser.email}); }
-        socket.on('init_data', (d)=>{
-            document.getElementById('groups-list').innerHTML = d.groups.map(g=>`<div class="card flex-between" style="padding:10px"><b>${g.name}</b> <button class="btn" style="font-size:10px;padding:5px">دخول</button></div>`).join('');
-            document.getElementById('pages-list').innerHTML = d.pages.map(p=>`<div class="card flex-between" style="padding:10px"><b>${p.name}</b> <button class="btn" style="font-size:10px;padding:5px;background:var(--secondary)">متابعة</button></div>`).join('');
-            d.reels.forEach(r => {
-                document.getElementById('reels-container').insertAdjacentHTML('beforeend', `<div class="reel-item" style="height:calc(100vh - 75px); background:black; display:flex; justify-content:center; border-bottom:1px solid #333; scroll-snap-align:start"><video src="${r.url}" controls style="width:100%; height:100%"></video></div>`);
-            });
-        });
 
-        // --- Chat ---
+        // Context
+        function enterContext(t,i,n,o){ currentContext=t;currentContextId=i; navTo('home'); document.getElementById('ctx-banner').style.display='block'; document.getElementById('ctx-title').innerText=n; document.getElementById('feed').innerHTML=''; socket.emit('get_context_posts',{context:t,contextId:i}); document.getElementById('ctx-del').style.display=(currentUser.email===o?'inline-block':'none'); }
+        function leaveContext(){ currentContext='general';currentContextId=null; document.getElementById('ctx-banner').style.display='none'; document.getElementById('feed').innerHTML=''; socket.emit('get_context_posts',{context:'general',contextId:null}); }
+        function deleteContext(){ if(confirm('حذف؟')){ if(currentContext==='group')socket.emit('delete_group',{groupId:currentContextId,email:currentUser.email}); else socket.emit('delete_page',{pageId:currentContextId,email:currentUser.email}); } }
+        socket.on('delete_success', ()=>{ alert('تم الحذف'); leaveContext(); });
+
+        // Chat
         function switchChat(t) { ['global','private','ai'].forEach(x=>document.getElementById(`chat-${x}`).style.display=x===t?'flex':'none'); document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active')); document.getElementById(`tab-${t}`).classList.add('active'); }
-        function sendGlobal(){ const t=document.getElementById('g-input').value; if(t){ socket.emit('send_global_msg',{text:t,author:currentUser.name,email:currentUser.email,avatar:currentUser.avatar}); document.getElementById('g-input').value=''; } }
-        socket.on('receive_global_msg', (m)=>{ 
-            const me=m.email===currentUser.email; 
-            document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}" onclick="openProfile('${m.email}')"><b>${me?'':m.author+':'}</b> ${m.text}</div></div>`; 
-        });
+        function sendGlobal(){ const t=document.getElementById('g-input').value; if(t){socket.emit('send_global_msg',{text:t,author:currentUser.name,email:currentUser.email,avatar:currentUser.avatar});document.getElementById('g-input').value='';} }
+        socket.on('receive_global_msg', (m)=>{ const me=m.email===currentUser.email; document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}" onclick="openProfile('${m.email}')"><b>${me?'':m.author+':'}</b> ${m.text}</div></div>`; });
         function sendAi(){ const t=document.getElementById('ai-input').value; if(t){ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-me">${t}</div>`; socket.emit('send_ai_msg',t); document.getElementById('ai-input').value=''; } }
         socket.on('receive_ai_msg', (m)=>{ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-other">${m.text}</div>`; });
-
-        // Private
-        socket.on('update_friends', (f) => {
-            document.getElementById('friends-list-view').innerHTML = f.map(u => `<div class="friend-item" style="padding:10px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:10px; cursor:pointer; display:flex; gap:10px; align-items:center" onclick="startChat('${u.email}', '${u.name}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join('');
-        });
+        socket.on('update_friends', (f) => { document.getElementById('friends-list-view').innerHTML = f.map(u => `<div class="friend-item" style="padding:10px; background:rgba(255,255,255,0.05); margin-bottom:5px; border-radius:10px; cursor:pointer; display:flex; gap:10px; align-items:center" onclick="startChat('${u.email}', '${u.name}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join(''); });
         window.startChat = (e, n) => { currentPriv=e; navTo('chat'); switchChat('private'); document.getElementById('friends-list-view').style.display='none'; document.getElementById('priv-convo').style.display='flex'; document.getElementById('p-name-header').innerText=n; document.getElementById('p-msgs').innerHTML=''; socket.emit('get_private_msgs',{u1:currentUser.email, u2:e}); }
         function closePriv(){ document.getElementById('priv-convo').style.display='none'; document.getElementById('friends-list-view').style.display='block'; currentPriv=null; }
         function sendPriv(){ const t=document.getElementById('p-input').value; if(t){ socket.emit('send_private_msg',{from:currentUser.email, to:currentPriv, text:t}); document.getElementById('p-input').value=''; } }
@@ -364,11 +289,9 @@
         socket.on('receive_private_msg', (m)=>{ if(m.from===currentPriv || m.from===currentUser.email) document.getElementById('p-msgs').innerHTML+=`<div class="msg-bubble ${m.from===currentUser.email?'msg-me':'msg-other'}">${m.text}</div>`; });
 
         // Reels
-        function showReelModal(){ showModal(`<h3>فيديو</h3><input type="file" id="r-f" class="input-box" accept="video/*"><input id="r-d" class="input-box" placeholder="وصف"><button class="btn" style="width:100%" onclick="uplR()">نشر</button><button class="btn" style="width:100%;background:none" onclick="closeModal()">إلغاء</button>`); }
-        async function uplR(){ const f=document.getElementById('r-f').files[0], d=document.getElementById('r-d').value; if(!f)return; showLoader('جاري الرفع...'); socket.emit('new_reel', {videoBase64:await toBase64(f), desc:d, author:currentUser.name, avatar:currentUser.avatar, email:currentUser.email}); }
-        const toBase64=f=>new Promise((r,j)=>{const rd=new FileReader();rd.readAsDataURL(f);rd.onload=()=>r(rd.result);rd.onerror=e=>j(e);});
-        socket.on('receive_reel', (r)=>{ document.getElementById('reels-container').insertAdjacentHTML('afterbegin', `<div class="reel-item" style="height:calc(100vh - 75px); background:black; display:flex; justify-content:center; border-bottom:1px solid #333; scroll-snap-align:start"><video src="${r.url}" controls style="width:100%; height:100%"></video></div>`); });
-
+        function showReelModal(){ showModal(`<h3>نشر فيديو</h3><input type="file" id="r-f" class="input-box" accept="video/*"><input type="text" id="r-d" class="input-box" placeholder="وصف"><button class="btn" style="width:100%" onclick="uplR()">نشر</button><button class="btn" style="width:100%;background:none" onclick="closeModal()">إلغاء</button>`); }
+        async function uplR(){ const f=document.getElementById('r-f').files[0], d=document.getElementById('r-d').value; if(!f)return; showLoader('جاري الرفع...'); socket.emit('upload_reel_start', {name:f.name}); const CHUNK=500*1024, total=Math.ceil(f.size/CHUNK); socket.once('upload_ready', async ({tempFileName}) => { for(let i=0; i<total; i++){ socket.emit('upload_reel_chunk', {fileName:tempFileName, data:await f.slice(i*CHUNK,(i+1)*CHUNK).arrayBuffer()}); } socket.emit('upload_reel_end', {fileName:tempFileName, desc:d, author:currentUser.name, avatar:currentUser.avatar, email:currentUser.email}); }); }
+        socket.on('receive_reel', (r)=>{ document.getElementById('reels-container').insertAdjacentHTML('afterbegin', `<div class="reel-item" style="height:calc(100vh - 70px); background:black; display:flex; justify-content:center; border-bottom:1px solid #333; scroll-snap-align:start"><video src="${r.url}" controls style="width:100%; height:100%"></video></div>`); });
     </script>
 </body>
                 </html>

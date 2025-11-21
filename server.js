@@ -3,7 +3,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const fs = require('fs');
-// استدعاء مكتبة الذكاء الاصطناعي
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
@@ -11,30 +10,12 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: { origin: "*" },
-    maxHttpBufferSize: 50 * 1024 * 1024 // 50 MB
+    maxHttpBufferSize: 50 * 1024 * 1024 
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- إعداد الذكاء الاصطناعي (Gemini 1.5 Flash) ---
-// تأكد من وضع GEMINI_API_KEY في إعدادات Render
-const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-
-async function getAIResponse(prompt) {
-    if (!genAI) return "عذراً، لم يتم تفعيل مفتاح الذكاء الاصطناعي في السيرفر.";
-    try {
-        // التعديل هنا: استخدام الموديل الأحدث لتجنب خطأ 404
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
-    } catch (error) {
-        console.error("AI Error:", error.message);
-        return "أواجه مشكلة تقنية حالياً، سأعود قريباً! 🤖";
-    }
-}
-
-// --- إدارة الملفات ---
+// --- إعدادات الملفات ---
 const DATA_FILE = 'database.json';
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 
@@ -75,23 +56,48 @@ function saveBase64ToFile(base64Data, prefix) {
     } catch (e) { return null; }
 }
 
-// --- منع توقف السيرفر (Keep-Alive) ---
+// --- الذكاء الاصطناعي (نظام المحاولات المتعددة - Fix Error 404) ---
+async function getAIResponse(prompt) {
+    if (!process.env.GEMINI_API_KEY) return "عذراً، مفتاح AI غير موجود.";
+    
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // قائمة الموديلات للتجربة بالترتيب
+    const modelsToTry = ["gemini-1.5-flash", "gemini-pro"]; 
+
+    for (const modelName of modelsToTry) {
+        try {
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (error) {
+            console.log(`Model ${modelName} failed, trying next...`);
+            continue; // جرب الموديل التالي
+        }
+    }
+    return "آسف، السيرفر مشغول جداً حالياً. حاول لاحقاً! 🤖";
+}
+
+// --- Keep-Alive ---
 app.get('/ping', (req, res) => res.send('Pong'));
 setInterval(() => { try { http.get(`http://127.0.0.1:${process.env.PORT||3000}/ping`).on('error',()=>{}); } catch(e){} }, 240000);
 
-// --- إعداد البوتات (80 بوت) ---
-const botFirstNames = ["أحمد", "سارة", "محمد", "نور", "خالد", "ليلى", "يوسف", "مريم", "عمر", "فاطمة", "علي", "هدى", "إبراهيم", "منى", "حسن", "زينب", "سعيد", "سلمى", "مصطفى", "رنا"];
-const botLastNames = ["المصري", "الغامدي", "علي", "حسن", "إبراهيم", "محمود", "سعيد", "كمال", "صلاح", "يوسف", "عبدالله", "عمر", "سالم", "غانم", "حامد", "نور"];
-const botBios = ["أحب الحياة 🌸", "مبرمج ومصمم 💻", "عاشق القهوة ☕", "طالب علم 📚", "مهندس", "طبيب", "سبحان الله", "مصور فوتوغرافي 📸"];
+// --- 80 Smart Bots Generator ---
+const firstNames = ["أحمد", "محمد", "محمود", "علي", "عمر", "خالد", "يوسف", "إبراهيم", "حسن", "سعيد", "مصطفى", "عبدالله", "عبدالرحمن", "كريم", "طارق", "زياد", "ياسر", "سامي", "فهد", "سلمان", "فيصل", "ماجد", "نايف", "وليد", "هاني", "جمال", "رامي", "سمير", "عادل", "نور", "سارة", "ليلى", "مريم", "فاطمة", "عائشة", "زينب", "هدى", "منى", "هند", "سلمى", "ندى", "ياسمين", "رنا", "داليا", "ريم", "أمل", "حنان", "سعاد", "وفاء", "لمياء", "شروق", "آية", "منال", "نهى", "سمر", "عبير", "غادة", "نجوى", "أسماء"];
+const lastNames = ["الشمري", "الغامدي", "المصري", "العلي", "محمد", "أحمد", "محمود", "حسن", "إبراهيم", "سعيد", "كمال", "جمال", "فوزي", "صلاح", "يوسف", "عبدالله", "عمر", "خالد", "سالم", "غانم", "حامد", "نور"];
+const botBios = ["أحب الخير للجميع 🌸", "مبرمج ومصمم", "عاشق القهوة والموسيقى ☕", "طالب علم", "مهندس", "طبيب", "لا إله إلا الله", "مصور فوتوغرافي"];
 
-// إنشاء البوتات
+// توليد البوتات (أسماء غير معروفة)
 for(let i=0; i<80; i++) {
-    const email = `bot${i}@blogane.com`;
+    const email = `user_${i}@blogane.com`;
     if(!db.users.find(u => u.email === email)) {
-        const fname = botFirstNames[Math.floor(Math.random() * botFirstNames.length)];
-        const lname = botLastNames[Math.floor(Math.random() * botLastNames.length)];
+        const fname = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lname = lastNames[Math.floor(Math.random() * lastNames.length)];
         db.users.push({
-            id: Date.now() + i, name: `${fname} ${lname}`, email: email, password: 'bot',
+            id: Date.now() + i, 
+            name: `${fname} ${lname}`, 
+            email: email, 
+            password: 'bot',
             avatar: `https://ui-avatars.com/api/?name=${fname}+${lname}&background=random&color=fff&size=128`,
             bio: botBios[Math.floor(Math.random() * botBios.length)], 
             isBot: true, isOnline: true
@@ -100,12 +106,19 @@ for(let i=0; i<80; i++) {
 }
 saveData();
 
-// محرك تفاعل البوتات (نشر، إعجاب، تعليق)
-const botPostsContent = ["صباح الخير 🌹", "جمعة مباركة", "مساء الورد", "مين فاضي نتكلم؟", "صورة جميلة", "سبحان الله", "الحمد لله", "تصبحون على خير", "الجو رائع اليوم"];
+// محرك التفاعل (صور ونصوص)
+const botPostsText = ["صباح الخير 🌹", "جمعة مباركة", "مساء الورد", "مين فاضي نتكلم؟", "سبحان الله", "الحمد لله", "تصبحون على خير", "الجو رائع اليوم"];
+// روابط صور ثابتة (طبيعة، قهوة، ورود)
+const botImages = [
+    "https://images.unsplash.com/photo-1490750967868-58cb75069ed6?w=400", 
+    "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400", 
+    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=400",
+    null, null, null // احتمالية عدم وجود صورة
+];
+
 setInterval(() => {
     try {
         const action = Math.random();
-        // اختيار بوت عشوائي
         const botsOnly = db.users.filter(u => u.isBot);
         if(botsOnly.length === 0) return;
         const botUser = botsOnly[Math.floor(Math.random() * botsOnly.length)];
@@ -113,21 +126,26 @@ setInterval(() => {
         if (action < 0.15) { // نشر
             const newPost = {
                 id: Date.now(), author: botUser.name, email: botUser.email, avatar: botUser.avatar,
-                content: botPostsContent[Math.floor(Math.random() * botPostsContent.length)], media: null,
+                content: botPostsText[Math.floor(Math.random() * botPostsText.length)], 
+                media: botImages[Math.floor(Math.random() * botImages.length)],
                 likes: [], comments: [], date: new Date().toISOString(), context: 'general', contextId: null
             };
             db.posts.unshift(newPost); io.emit('receive_post', newPost);
         } 
-        else if (action < 0.5 && db.posts.length > 0) { // لايك
+        else if (action < 0.6 && db.posts.length > 0) { // لايك
             const p = db.posts[Math.floor(Math.random() * db.posts.length)];
             if(p && !p.likes.includes(botUser.email)) {
                 p.likes.push(botUser.email);
                 io.emit('update_likes', {id: p.id, type: 'post', likes: p.likes});
             }
         }
-        else if (action > 0.95) { // رسالة عامة
-            const m = { id:Date.now(), text:"منورين يا جماعة 👋", image:null, author:botUser.name, email:botUser.email, avatar:botUser.avatar, date:new Date().toISOString() };
-            db.globalMessages.push(m); io.emit('receive_global_msg', m);
+        else if (action < 0.75 && db.posts.length > 0) { // تعليق
+            const p = db.posts[Math.floor(Math.random() * db.posts.length)];
+            if(p) {
+                const c = { id: Date.now(), text: "منور 🔥", userEmail: botUser.email, userName: botUser.name, userAvatar: botUser.avatar };
+                p.comments.push(c);
+                io.emit('update_comments', {postId: p.id, comments: p.comments});
+            }
         }
         saveData();
     } catch(e) {}
@@ -140,7 +158,10 @@ io.on('connection', (socket) => {
     // Auth
     socket.on('register', (d) => {
         if (db.users.find(u => u.email === d.email)) socket.emit('auth_error', 'البريد مسجل');
-        else { const u = { ...d, id: Date.now(), avatar: `https://ui-avatars.com/api/?name=${d.name}&background=random`, bio: 'مستخدم جديد', isOnline: true }; db.users.push(u); saveData(); socket.emit('auth_success', u); }
+        else {
+            const u = { ...d, id: Date.now(), avatar: `https://ui-avatars.com/api/?name=${d.name}&background=random`, bio: 'مستخدم جديد', isOnline: true };
+            db.users.push(u); saveData(); socket.emit('auth_success', u);
+        }
     });
     socket.on('login', (d) => {
         const u = db.users.find(u => u.email === d.email && u.password === d.password);
@@ -153,20 +174,21 @@ io.on('connection', (socket) => {
         } else { socket.emit('auth_error', 'بيانات خاطئة'); }
     });
 
-    // AI Chat & Bots Reply
+    // AI Chat
     socket.on('send_ai_msg', async (text) => {
         const reply = await getAIResponse(text);
         socket.emit('receive_ai_msg', { text: reply });
     });
 
+    // Private & Bot Reply
     socket.on('send_private_msg', (d) => {
         const m = { ...d, id: Date.now(), date: new Date().toISOString() };
         db.privateMessages.push(m); saveData();
         socket.emit('receive_private_msg', m);
         
-        // إذا كان المستقبل بوت، يرد بالذكاء الاصطناعي
         const target = db.users.find(u => u.email === d.to);
         if(target && target.isBot) {
+            // البوت يرد بالذكاء الاصطناعي
             setTimeout(async () => {
                 const replyText = await getAIResponse(d.text);
                 const botReply = { id:Date.now(), from:d.to, to:d.from, text:replyText, date:new Date().toISOString() };
@@ -177,6 +199,7 @@ io.on('connection', (socket) => {
             if(connectedSockets[d.to]) io.to(connectedSockets[d.to]).emit('receive_private_msg', m);
         }
     });
+    socket.on('get_private_msgs', ({u1, u2}) => socket.emit('load_private_msgs', db.privateMessages.filter(m=>(m.from===u1&&m.to===u2)||(m.from===u2&&m.to===u1))));
 
     // Friend Requests (Bot Auto-Accept)
     socket.on('send_friend_request', (d) => {
@@ -218,12 +241,13 @@ io.on('connection', (socket) => {
 
     // General
     socket.on('send_global_msg', (d) => { let u=d.image?saveBase64ToFile(d.image,'chat'):null; const m={...d,image:u,id:Date.now(),date:new Date().toISOString()}; db.globalMessages.push(m); saveData(); io.emit('receive_global_msg', m); });
-    socket.on('get_private_msgs', ({u1, u2}) => socket.emit('load_private_msgs', db.privateMessages.filter(m=>(m.from===u1&&m.to===u2)||(m.from===u2&&m.to===u1))));
     socket.on('new_post', (d) => { let u=d.media&&d.media.startsWith('data:')?saveBase64ToFile(d.media,'post'):null; const p={...d,id:Date.now(),media:u,likes:[],comments:[],date:new Date().toISOString()}; db.posts.unshift(p); saveData(); io.emit('receive_post', p); socket.emit('upload_complete'); });
     socket.on('toggle_like', ({id, type, userEmail}) => { let x=(type==='reel'?db.reels:db.posts).find(i=>i.id==id); if(x){ if(x.likes.includes(userEmail))x.likes=x.likes.filter(e=>e!==userEmail); else x.likes.push(userEmail); saveData(); io.emit('update_likes', {id, type, likes:x.likes}); } });
     socket.on('add_comment', (d) => { const p=db.posts.find(x=>x.id==d.postId); if(p){ p.comments.push({id:Date.now(), ...d}); saveData(); io.emit('update_comments', {postId:d.postId, comments:p.comments}); } });
+    
     socket.on('update_profile', (d) => { const i=db.users.findIndex(u=>u.email===d.email); if(i!==-1){ db.users[i].name=d.name; db.users[i].bio=d.bio; if(d.avatar&&d.avatar.startsWith('data:'))db.users[i].avatar=saveBase64ToFile(d.avatar,'avatar'); saveData(); socket.emit('profile_updated_success', db.users[i]); } });
     socket.on('get_profile_info', (e) => { const u=db.users.find(x=>x.email===e); if(u) { const fs=db.friendships.filter(f=>f.user1===e||f.user2===e); const fEmails=fs.map(f=>f.user1===e?f.user2:f.user1); const friends=db.users.filter(x=>fEmails.includes(x.email)).map(x=>({name:x.name, avatar:x.avatar, email:x.email})); socket.emit('open_profile_view', {user:u, posts:(db.posts||[]).filter(p=>p.email===e), friends}); } });
+
     socket.on('create_group', (d)=>{const g={id:'g'+Date.now(),...d,members:[d.owner]}; db.groups.push(g); saveData(); io.emit('update_groups', db.groups);});
     socket.on('create_page', (d)=>{const p={id:'p'+Date.now(),...d,followers:[d.owner]}; db.pages.push(p); saveData(); io.emit('update_pages', db.pages);});
     socket.on('delete_group', ({groupId, email}) => { const i=db.groups.findIndex(g=>g.id===groupId); if(i!==-1 && db.groups[i].owner===email){ db.groups.splice(i,1); saveData(); io.emit('update_groups', db.groups); socket.emit('delete_success'); } });
@@ -241,4 +265,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on ${PORT}`));
+server.listen(PORT, () => console.log(`Server on ${PORT}`));

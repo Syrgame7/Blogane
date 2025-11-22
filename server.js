@@ -60,7 +60,7 @@ async function getAIResponse(prompt, context = "") {
     if (!process.env.GEMINI_API_KEY) return "مرحباً! كيف حالك؟";
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const fullPrompt = context ? `Context: ${context}. Reply to: ${prompt}` : prompt;
         const result = await model.generateContent(fullPrompt);
         return (await result.response).text();

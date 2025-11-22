@@ -3,124 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blogane Platinum</title>
+    <title>Blogane Ultimate</title>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #050505; --panel: rgba(30, 30, 35, 0.9); --primary: #8b5cf6; --accent: #ec4899; --gold: #fbbf24; 
-            --text: #ffffff; --gray: #a1a1aa; --border: 1px solid rgba(255, 255, 255, 0.12); --glass: blur(20px);
+            --bg: #0f172a; --panel: rgba(30, 41, 59, 0.9); --primary: #8b5cf6; --accent: #f43f5e; --gold: #fbbf24; 
+            --text: #f8fafc; --gray: #94a3b8; --border: 1px solid rgba(255, 255, 255, 0.1); --glass: blur(12px);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); background-image: radial-gradient(circle at top, #1e1b4b 0%, transparent 50%), radial-gradient(circle at bottom, #312e81 0%, transparent 50%); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--bg); background-image: radial-gradient(circle at top, #1e1b4b 0%, transparent 50%), radial-gradient(circle at bottom, #4c0519 0%, transparent 50%); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Core UI */
-        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 18px; border-radius: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.4); transition: 0.2s; }
+        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(139,92,246,0.3); }
         .btn:active { transform: scale(0.95); }
-        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 20px; padding: 16px; margin-bottom: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-        .input-box { width: 100%; background: rgba(0,0,0,0.4); border: var(--border); padding: 12px; border-radius: 14px; color: white; outline: none; }
-        .avatar { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 18px; padding: 15px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .input-box { width: 100%; background: rgba(0,0,0,0.3); border: var(--border); padding: 12px; border-radius: 12px; color: white; outline: none; }
+        .avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
 
-        /* Floating Gift Ticker */
+        /* Floating Ticker */
         .floating-ticker {
-            position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-100px);
-            width: 90%; max-width: 380px; height: 48px;
-            background: linear-gradient(135deg, #6366f1, #2563eb);
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            width: 85%; max-width: 400px; height: 45px;
+            background: linear-gradient(135deg, #6366f1, #3b82f6);
             border-radius: 30px; z-index: 2000; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6); border: 1px solid rgba(255,255,255,0.3);
-            transition: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0;
+            box-shadow: 0 5px 20px rgba(99, 102, 241, 0.5); border: 1px solid rgba(255,255,255,0.2);
+            transition: 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); opacity: 0;
         }
         .floating-ticker.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-        .ticker-content { display: flex; align-items: center; gap: 10px; color: white; font-weight: bold; font-size: 13px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        .ticker-content { display: flex; align-items: center; gap: 10px; color: white; font-weight: bold; font-size: 13px; }
 
-        /* Post Actions (FIXED & VISIBLE) */
-        .actions {
-            display: flex; gap: 25px; margin-top: 15px; padding-top: 12px; 
-            border-top: var(--border); color: var(--gray);
-        }
-        .act-btn { 
-            display: flex; align-items: center; gap: 8px; cursor: pointer; 
-            padding: 5px 10px; border-radius: 10px; transition: 0.2s;
-        }
-        .act-btn:hover { background: rgba(255,255,255,0.05); color: white; }
-        .liked { color: var(--accent); animation: pop 0.3s; }
-        @keyframes pop { 50% { transform: scale(1.2); } }
-
-        /* Comments Inline */
-        .comments-area { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); animation: slideDown 0.2s; }
-        .comment-item { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; }
-        .comment-bubble { background: rgba(255,255,255,0.08); padding: 8px 14px; border-radius: 16px; flex: 1; }
-
-        /* Navigation */
-        .bottom-nav { height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); padding-bottom: 5px; border-radius: 24px 24px 0 0; }
-        .nav-item { color: var(--gray); font-size: 24px; cursor: pointer; transition: 0.3s; position: relative; }
-        .nav-item.active { color: var(--primary); transform: translateY(-6px); text-shadow: 0 0 12px var(--primary); }
-        .header { padding: 15px 20px; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
+        /* Nav & Header */
+        .bottom-nav { height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); padding-bottom: 5px; border-radius: 20px 20px 0 0; }
+        .nav-item { color: var(--gray); font-size: 22px; cursor: pointer; transition: 0.3s; position: relative; }
+        .nav-item.active { color: var(--primary); transform: translateY(-5px); }
+        .header { padding: 15px 20px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
+        .badge { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
 
         /* Views */
         .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 100px; }
         .view.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 
-        /* Chat */
-        .msg-bubble { padding: 10px 16px; border-radius: 20px; max-width: 75%; margin-bottom: 8px; font-size: 14px; }
-        .msg-me { background: linear-gradient(135deg, var(--primary), #4f46e5); align-self: flex-start; border-bottom-right-radius: 2px; }
-        .msg-other { background: #334155; align-self: flex-end; border-bottom-left-radius: 2px; }
+        /* Chat & Profile */
         .chat-tabs { display: flex; gap: 10px; padding: 10px; }
-        .chat-tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--gray); cursor: pointer; border: var(--border); font-weight: bold; }
-        .chat-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        /* Profile */
-        .profile-cover { height: 170px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 35px 35px; position: relative; margin-bottom: 65px; }
-        .profile-pic-lg { width: 115px; height: 115px; border-radius: 50%; border: 5px solid var(--bg); position: absolute; bottom: -55px; right: 50%; transform: translateX(50%); object-fit: cover; }
-        .friend-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 20px; font-size: 12px; margin: 3px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); }
-
+        .chat-tab { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05); color: var(--gray); cursor: pointer; border: var(--border); }
+        .chat-tab.active { background: var(--primary); color: white; }
+        .msg-bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; margin-bottom: 8px; font-size: 14px; }
+        .msg-me { background: var(--primary); align-self: flex-start; }
+        .msg-other { background: #334155; align-self: flex-end; }
+        .profile-cover { height: 160px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 30px 30px; position: relative; margin-bottom: 60px; }
+        .profile-pic-lg { width: 110px; height: 110px; border-radius: 50%; border: 5px solid var(--bg); position: absolute; bottom: -55px; right: 50%; transform: translateX(50%); object-fit: cover; }
+        
         /* Reels */
         .reel-item { height: calc(100vh - 75px); background: black; position: relative; scroll-snap-align: start; display: flex; justify-content: center; }
-        .reel-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 25px; z-index: 10; }
-        .r-btn { display: flex; flex-direction: column; align-items: center; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); cursor: pointer; }
-        .r-btn i { font-size: 30px; margin-bottom: 5px; }
+        .reel-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; pointer-events: auto; }
+        .r-btn { display: flex; flex-direction: column; align-items: center; color: white; text-shadow: 1px 1px 2px black; cursor: pointer; }
+        .r-btn i { font-size: 28px; margin-bottom: 5px; }
         .reel-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); pointer-events: none; }
-        .reel-comments-sheet { position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: #1e293b; border-radius: 24px 24px 0 0; z-index: 20; display: none; flex-direction: column; animation: slideUp 0.3s; border-top: 1px solid rgba(255,255,255,0.1); }
+        .reel-comments-sheet { position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: #1e293b; border-radius: 20px 20px 0 0; z-index: 20; display: none; flex-direction: column; animation: slideUp 0.3s; }
         @keyframes slideUp { from{transform:translateY(100%)}to{transform:translateY(0)} }
 
-        /* Loader & Modal */
-        .loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 3000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .spinner { width: 45px; height: 45px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 0.8s infinite; }
+        /* Misc */
+        .loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 2000; display: none; justify-content: center; align-items: center; }
-        .modal-box { background: #18181b; width: 90%; max-width: 400px; padding: 25px; border-radius: 24px; border: var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        
-        /* Gift Grid */
-        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
-        .gift-item { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 12px; text-align: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
-        .gift-item:hover { border-color: var(--gold); background: rgba(251, 191, 36, 0.1); transform: scale(1.05); }
-
-        .coins-badge { background: rgba(251, 191, 36, 0.15); color: var(--gold); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; border: 1px solid rgba(251, 191, 36, 0.5); display: flex; align-items: center; gap: 6px; box-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(16, 185, 129, 0.95); color: white; padding: 12px 20px; border-radius: 30px; z-index: 3000; transition: 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); display: flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: max-content; max-width: 90%; }
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .modal-box { background: #1e293b; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; border: var(--border); }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
+        .gift-item { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid transparent; font-size: 12px; }
+        .gift-item:hover { border-color: var(--gold); background: rgba(251, 191, 36, 0.1); }
+        .coins-badge { background: rgba(251, 191, 36, 0.15); color: var(--gold); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; border: 1px solid rgba(251, 191, 36, 0.5); display: flex; align-items: center; gap: 6px; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(16, 185, 129, 0.95); color: white; padding: 12px 20px; border-radius: 25px; z-index: 3000; transition: 0.4s; display: flex; align-items: center; gap: 10px; }
         .toast.show { transform: translateX(-50%) translateY(0); }
+        
+        .post-img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 450px; object-fit: cover; }
+        .actions { display: flex; gap: 25px; margin-top: 15px; padding-top: 12px; border-top: var(--border); color: var(--gray); }
+        .act-btn { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .liked { color: var(--accent); }
+        .comments-area { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
 
-    <!-- Sounds -->
+    <!-- Audio Library -->
     <audio id="snd-start" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
     <audio id="snd-msg" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
+    <audio id="snd-send" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
     <audio id="snd-coin" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
-    <audio id="snd-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
-    <audio id="snd-ticker" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <audio id="snd-click" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+    <audio id="snd-notif" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
 
-    <!-- Floating Gift Ticker -->
+    <!-- Floating Ticker -->
     <div id="gift-ticker" class="floating-ticker"><div class="ticker-content" id="ticker-text"></div></div>
+
     <div id="toast" class="toast"><i class="fas fa-bell"></i> <span id="toast-msg"></span></div>
     <div class="loader-overlay" id="loader"><div class="spinner"></div><p style="margin-top:15px; color:white">جاري التحميل...</p></div>
 
     <!-- Auth -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box" style="text-align: center;">
-            <h1 style="font-size:38px; background: linear-gradient(to right, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; margin-bottom: 10px;">Blogane</h1>
-            <div id="reg-fields" style="display:none"><input id="reg-name" class="input-box" placeholder="الاسم الكامل" style="margin-bottom:10px"></div>
+            <h1 style="font-size:35px; color:var(--primary); margin-bottom:10px">Blogane</h1>
+            <div id="reg-fields" style="display:none"><input id="reg-name" class="input-box" placeholder="الاسم" style="margin-bottom:10px"></div>
             <input id="email" class="input-box" placeholder="البريد الإلكتروني" style="margin-bottom:10px">
             <input id="pass" type="password" class="input-box" placeholder="كلمة المرور" style="margin-bottom:15px">
             <button class="btn" style="width:100%" onclick="auth()">دخول</button>
@@ -132,9 +116,9 @@
     <div id="gift-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
             <h3 style="text-align:center; color:var(--gold)">متجر الهدايا 🎁</h3>
-            <p style="text-align:center; font-size:12px; color:var(--gray)">رصيدك: <span id="gift-balance">0</span></p>
+            <p style="text-align:center; font-size:12px">رصيدك: <span id="gift-balance">0</span></p>
             <div class="gift-grid" id="gift-grid-content"></div>
-            <button class="btn" style="width:100%; background:#27272a; margin-top:15px" onclick="document.getElementById('gift-modal').style.display='none'">إلغاء</button>
+            <button class="btn" style="width:100%; background:#333; margin-top:10px" onclick="document.getElementById('gift-modal').style.display='none'">إلغاء</button>
         </div>
     </div>
 
@@ -144,7 +128,7 @@
     <div id="view-home" class="view active">
         <div class="header">
             <div class="coins-badge"><i class="fas fa-coins"></i> <span id="user-coins">0</span></div>
-            <img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)" style="cursor:pointer">
+            <img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)">
         </div>
         <div id="ctx-banner" style="display:none; padding:15px; background:linear-gradient(to right, var(--primary), var(--accent)); text-align:center;">
             <h3 id="ctx-title" style="color:white;"></h3>
@@ -160,7 +144,6 @@
                     <label style="color:#10b981; cursor:pointer; display:flex; align-items:center; gap:5px"><i class="fas fa-image"></i> صورة<input type="file" id="post-img" hidden></label>
                     <button class="btn" onclick="publishPost()">نشر</button>
                 </div>
-                <div id="post-preview" style="margin-top:10px"></div>
             </div>
             <div id="feed"></div>
         </div>
@@ -176,8 +159,8 @@
                 <div style="display:flex; gap:10px; margin-top:10px"><input id="friend-email" class="input-box" style="margin:0" placeholder="إيميل الصديق"><button class="btn" onclick="addFriend()"><i class="fas fa-plus"></i></button></div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px">
-                <button class="btn" style="background:#334155" onclick="promptCreate('group')">مجموعة +</button>
-                <button class="btn" style="background:#334155" onclick="promptCreate('page')">صفحة +</button>
+                <button class="btn" style="background:#334155" onclick="promptCreate('group')">إنشاء مجموعة</button>
+                <button class="btn" style="background:#334155" onclick="promptCreate('page')">إنشاء صفحة</button>
             </div>
             <h4 style="color:var(--gray); margin-bottom:10px">المجموعات</h4><div id="groups-list"></div>
             <h4 style="color:var(--gray); margin:20px 0 10px">الصفحات</h4><div id="pages-list"></div>
@@ -237,7 +220,10 @@
         const socket = io();
         let currentUser = null, currentContext = 'general', currentContextId = null, currentPriv = null, isReg = false;
         
-        // Gift List
+        // Helper Sounds
+        function playSnd(id) { document.getElementById(id).currentTime=0; document.getElementById(id).play().catch(()=>{}); }
+
+        // Gifts
         const gifts = [
             {n:"وردة",i:"🌹",p:10}, {n:"قلب",i:"❤️",p:15}, {n:"قهوة",i:"☕",p:20}, {n:"نار",i:"🔥",p:25},
             {n:"تاج",i:"👑",p:100}, {n:"ألماس",i:"💎",p:150}, {n:"سيارة",i:"🏎️",p:500}, {n:"طائرة",i:"✈️",p:1000},
@@ -252,20 +238,19 @@
         ];
         document.getElementById('gift-grid-content').innerHTML = gifts.map(g => `<div class="gift-item" onclick="sendGift('${g.n}',${g.p},'${g.i}')"><span class="gift-emoji">${g.i}</span><br>${g.p}</div>`).join('');
 
-        // Ticker
         socket.on('gift_broadcast', (d) => {
             const tick = document.getElementById('gift-ticker');
-            document.getElementById('ticker-text').innerHTML = `<img src="${d.avatar}" style="width:24px;height:24px;border-radius:50%"> ${d.from} أرسل ${d.gift} إلى ${d.to}`;
-            tick.classList.add('show'); document.getElementById('snd-ticker').play().catch(()=>{});
+            document.getElementById('ticker-text').innerHTML = `<img src="${d.avatar}" style="width:20px;border-radius:50%"> ${d.from} أرسل ${d.gift} إلى ${d.to}`;
+            tick.classList.add('show'); playSnd('snd-ticker');
             setTimeout(()=>tick.classList.remove('show'), 5000);
         });
 
-        function notify(t, b) { const el=document.getElementById('toast'); document.getElementById('toast-msg').innerHTML=`<b>${t}</b><br>${b}`; el.classList.add('show'); document.getElementById('snd-msg').play().catch(()=>{}); setTimeout(()=>el.classList.remove('show'), 3000); }
+        function notify(t, b) { const el=document.getElementById('toast'); document.getElementById('toast-msg').innerHTML=`<b>${t}</b><br>${b}`; el.classList.add('show'); playSnd('snd-notif'); setTimeout(()=>el.classList.remove('show'), 3000); }
 
         window.onload = () => { const s=localStorage.getItem('u'); if(s) socket.emit('login', JSON.parse(s)); else { hideLoader(); document.getElementById('auth-modal').style.display='flex'; } }
 
         function navTo(v, el) { 
-            document.getElementById('snd-click').play().catch(()=>{});
+            playSnd('snd-click');
             document.querySelectorAll('.view').forEach(x=>x.classList.remove('active')); 
             document.getElementById('view-'+v).classList.add('active'); 
             document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); 
@@ -273,7 +258,6 @@
             if(v==='chat') document.getElementById('nav-msg-badge').style.display='none';
             if(v==='profile' && currentUser) socket.emit('get_profile_info', currentUser.email);
         }
-
         function showLoader(t){ document.getElementById('loader').style.display='flex'; }
         function hideLoader(){ document.getElementById('loader').style.display='none'; }
         function showModal(h){ document.getElementById('modal-content').innerHTML=h; document.getElementById('generic-modal').style.display='flex'; }
@@ -281,32 +265,35 @@
 
         function toggleAuth(){ isReg=!isReg; document.getElementById('reg-fields').style.display=isReg?'block':'none'; }
         function auth(){ const e=document.getElementById('email').value, p=document.getElementById('pass').value; if(isReg) socket.emit('register', {name:document.getElementById('reg-name').value, email:e, password:p}); else socket.emit('login', {email:e, password:p}); }
-        socket.on('auth_success', (u)=>{ currentUser=u; localStorage.setItem('u', JSON.stringify({email:u.email, password:u.password})); document.getElementById('auth-modal').style.display='none'; hideLoader(); document.getElementById('snd-start').play().catch(()=>{}); updateMyUI(); navTo('home', document.querySelector('.nav-item')); });
+        socket.on('auth_success', (u)=>{ 
+            currentUser=u; localStorage.setItem('u', JSON.stringify({email:u.email, password:u.password})); 
+            document.getElementById('auth-modal').style.display='none'; hideLoader(); playSnd('snd-start'); updateMyUI(); 
+            navTo('home', document.querySelector('.nav-item'));
+        });
         function updateMyUI(){ document.getElementById('my-avatar').src=currentUser.avatar; document.getElementById('header-avatar').src=currentUser.avatar; document.getElementById('user-coins').innerText=currentUser.coins; }
 
-        // Profile (FIXED: Passing element correctly)
-        window.openProfile = (e, el) => { 
-            if(el) navTo('profile', el); else navTo('profile'); 
-            showLoader('جاري التحميل...'); socket.emit('get_profile_info', e); 
-        }
+        // Profile
+        window.openProfile = (e, el) => { if(el) navTo('profile', el); else navTo('profile'); showLoader('جاري التحميل...'); socket.emit('get_profile_info', e); }
         socket.on('open_profile_view', ({user, posts, friends}) => {
             hideLoader();
             document.getElementById('profile-content').innerHTML = `
                 <div class="profile-cover"><img src="${user.avatar}" class="profile-pic-lg"></div>
                 <div style="text-align:center;padding-top:60px"><h2>${user.name}</h2><p style="color:var(--gray)">${user.bio||''}</p>
                 <div style="margin-top:15px">${user.email===currentUser.email ? `<button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showEditProfile()">تعديل الملف</button>` : `<button class="btn" onclick="socket.emit('send_friend_request', {from:currentUser.email, to:'${user.email}'}); alert('تم الإرسال')">صداقة</button> <button class="btn" style="background:var(--accent)" onclick="startChat('${user.email}','${user.name}')">مراسلة</button>`}</div></div>
-                <div style="padding:15px"><h4 style="color:var(--accent)">الأصدقاء</h4><div style="display:flex;flex-wrap:wrap">${friends.length?friends.map(f=>`<div class="friend-chip" onclick="openProfile('${f.email}')"><img src="${f.avatar}" style="width:20px;height:20px;border-radius:50%">${f.name}</div>`).join(''):'<span style="color:#666;font-size:12px">لا يوجد</span>'}</div><h3 style="margin-top:15px;color:var(--primary);border-bottom:var(--border)">المنشورات</h3>${posts.map(p=>`<div class="card"><p>${p.content||'صورة'}</p></div>`).join('')}</div>`;
+                <div style="padding:15px"><h4 style="color:var(--accent)">الأصدقاء</h4><div style="display:flex;flex-wrap:wrap">${friends.length?friends.map(f=>`<div class="friend-chip" onclick="openProfile('${f.email}')"><img src="${f.avatar}" style="width:20px;height:20px;border-radius:50%">${f.name}</div>`).join(''):'<span style="color:var(--gray);font-size:12px">لا يوجد</span>'}</div><h3 style="margin-top:15px;color:var(--primary);border-bottom:var(--border)">المنشورات</h3>${posts.map(p=>`<div class="card"><p>${p.content||'صورة'}</p></div>`).join('')}</div>`;
+            if(!el) navTo('profile');
         });
         function showEditProfile(){ showModal(`<h3>تعديل</h3><input type="file" id="edit-img" class="input-box"><input id="e-n" class="input-box" value="${currentUser.name}"><input id="e-b" class="input-box" value="${currentUser.bio||''}" placeholder="النبذة"><button class="btn" onclick="saveP()">حفظ</button><button class="btn" style="background:none" onclick="closeModal()">إلغاء</button>`); }
         function saveP(){ const n=document.getElementById('e-n').value, b=document.getElementById('e-b').value, f=document.getElementById('edit-img').files[0]; const d={email:currentUser.email,name:n,bio:b}; if(f){const r=new FileReader();r.onload=(e)=>{d.avatar=e.target.result;socket.emit('update_profile',d);};r.readAsDataURL(f);}else socket.emit('update_profile',d); closeModal(); }
         socket.on('profile_updated_success', (u)=>{ currentUser=u; updateMyUI(); openProfile(u.email); });
 
-        // Posts (FIXED HTML STRUCTURE FOR ACTIONS)
-        let postImg=null; document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result; document.getElementById('post-preview').innerHTML=`<img src="${postImg}" style="height:60px;border-radius:10px">`}; r.readAsDataURL(f);} });
-        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ showLoader('نشر...'); socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:currentContext, contextId:currentContextId}); document.getElementById('post-txt').value=''; postImg=null; document.getElementById('post-preview').innerHTML=''; } }
+        // Posts
+        let postImg=null; document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result;}; r.readAsDataURL(f);} });
+        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ showLoader('نشر...'); socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:currentContext, contextId:currentContextId}); document.getElementById('post-txt').value=''; postImg=null; } }
         socket.on('upload_complete', hideLoader);
-        
-        // THE FIX FOR POST ACTIONS:
+        socket.on('receive_post', (p)=> { if(p.context===currentContext && p.contextId===currentContextId) renderPost(p,'feed'); });
+        socket.on('load_posts', (ps)=> { document.getElementById('feed').innerHTML=''; ps.reverse().forEach(p=>renderPost(p,'feed')); });
+
         function renderPost(p, t) {
             const l = p.likes.includes(currentUser.email);
             const html = `
@@ -314,18 +301,10 @@
                 <div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author}</b><br><small style="color:var(--gray); font-size:11px">${new Date(p.date).toLocaleTimeString()}</small></div></div>
                 <p style="margin-top:10px; line-height:1.5">${p.content||''}</p>
                 ${p.media?`<img src="${p.media}" class="post-img">`:''}
-                
-                <!-- Actions Bar -->
                 <div class="actions">
-                    <div class="act-btn ${l?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})">
-                        <i class="${l?'fas':'far'} fa-heart"></i> <span id="l-${p.id}">${p.likes.length}</span>
-                    </div>
-                    <div class="act-btn" onclick="toggleC(${p.id})">
-                        <i class="far fa-comment"></i> <span>${p.comments.length}</span>
-                    </div>
+                    <div class="act-btn ${l?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})"><i class="${l?'fas':'far'} fa-heart"></i> <span id="l-${p.id}">${p.likes.length}</span></div>
+                    <div class="act-btn" onclick="toggleC(${p.id})"><i class="far fa-comment"></i> <span>${p.comments.length}</span></div>
                 </div>
-
-                <!-- Comments Section -->
                 <div class="comments-area" id="com-${p.id}">
                     <div id="clist-${p.id}">${p.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble" onclick="openProfile('${c.userEmail}')"><b>${c.userName}</b><br>${c.text}</div></div>`).join('')}</div>
                     <div style="display:flex; gap:5px; margin-top:10px"><input id="cin-${p.id}" class="input-box" style="padding:8px" placeholder="تعليق.."><button class="btn" style="padding:5px 10px" onclick="sendC(${p.id})">➤</button></div>
@@ -337,51 +316,40 @@
         window.sendC=(id)=>{const t=document.getElementById(`cin-${id}`).value; if(t){socket.emit('add_comment',{postId:id, text:t, userEmail:currentUser.email, userName:currentUser.name, userAvatar:currentUser.avatar}); document.getElementById(`cin-${id}`).value='';}}
         socket.on('update_comments', (d)=>{ document.getElementById(`clist-${d.postId}`).innerHTML = d.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble"><b>${c.userName}</b><br>${c.text}</div></div>`).join(''); });
         socket.on('update_likes', (d)=>{ const e=document.getElementById(`l-${d.id}`); if(e)e.innerText=d.likes.length; });
-        socket.on('receive_post', (p)=>{ if(p.context===currentContext && p.contextId===currentContextId) renderPost(p,'feed'); });
-        socket.on('load_posts', (ps)=>{ document.getElementById('feed').innerHTML=''; ps.reverse().forEach(p=>renderPost(p,'feed')); });
 
-        // Chat Logic
+        // Chat
         function switchChat(t) { ['global','private','ai'].forEach(x=>document.getElementById(`chat-${x}`).style.display=x===t?'flex':'none'); document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active')); document.getElementById(`tab-${t}`).classList.add('active'); }
-        function sendGlobal(){ const t=document.getElementById('g-input').value; if(t){socket.emit('send_global_msg',{text:t,author:currentUser.name,email:currentUser.email,avatar:currentUser.avatar});document.getElementById('g-input').value='';} }
-        socket.on('receive_global_msg', (m)=>{ const me=m.email===currentUser.email; document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}" onclick="openProfile('${m.email}')"><b>${me?'':m.author+':'}</b> ${m.text}</div></div>`; });
-        function sendAi(){ const t=document.getElementById('ai-input').value; if(t){ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-me">${t}</div>`; socket.emit('send_ai_msg',t); document.getElementById('ai-input').value=''; } }
-        socket.on('receive_ai_msg', (m)=>{ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-other">${m.text}</div>`; });
+        function sendGlobal(){ const t=document.getElementById('g-input').value; if(t){socket.emit('send_global_msg',{text:t,author:currentUser.name,email:currentUser.email,avatar:currentUser.avatar});document.getElementById('g-input').value=''; playSnd('snd-send');} }
+        socket.on('receive_global_msg', (m)=>{ const me=m.email===currentUser.email; document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}" onclick="openProfile('${m.email}')"><b>${me?'':m.author+':'}</b> ${m.text}</div></div>`; if(!me) playSnd('snd-msg'); });
+        function sendAi(){ const t=document.getElementById('ai-input').value; if(t){ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-me">${t}</div>`; socket.emit('send_ai_msg',t); document.getElementById('ai-input').value=''; playSnd('snd-send'); } }
+        socket.on('receive_ai_msg', (m)=>{ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-other">${m.text}</div>`; playSnd('snd-msg'); });
+        
         socket.on('update_friends', (f) => { document.getElementById('friends-list-view').innerHTML = f.map(u => `<div class="friend-item" onclick="startChat('${u.email}','${u.name}')"><img src="${u.avatar}" class="avatar"> <div><b>${u.name}</b><br><small style="color:${u.isOnline?'#10b981':'#aaa'}">${u.isOnline?'نشط الآن':'غير متصل'}</small></div></div>`).join(''); });
         window.startChat = (e, n) => { currentPriv=e; navTo('chat'); switchChat('private'); document.getElementById('friends-list-view').style.display='none'; document.getElementById('priv-convo').style.display='flex'; document.getElementById('p-name-header').innerText=n; document.getElementById('p-msgs').innerHTML=''; socket.emit('get_private_msgs',{u1:currentUser.email, u2:e}); }
         function closePriv(){ document.getElementById('priv-convo').style.display='none'; document.getElementById('friends-list-view').style.display='block'; currentPriv=null; }
-        function sendPriv(){ const t=document.getElementById('p-input').value; if(t){ socket.emit('send_private_msg',{from:currentUser.email, to:currentPriv, text:t}); document.getElementById('p-input').value=''; } }
+        function sendPriv(){ const t=document.getElementById('p-input').value; if(t){ socket.emit('send_private_msg',{from:currentUser.email, to:currentPriv, text:t}); document.getElementById('p-input').value=''; playSnd('snd-send'); } }
         socket.on('load_private_msgs', (ms)=>{ document.getElementById('p-msgs').innerHTML = ms.map(m=> { const me=m.from===currentUser.email; const c=m.isGift?`<div style="text-align:center;background:#d97706;padding:10px;border-radius:10px;border:1px solid #fbbf24"><div style="font-size:30px">${m.icon}</div>${m.text}</div>`:m.text; return `<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${c}</div></div>`; }).join(''); });
-        socket.on('receive_private_msg', (m)=>{ 
-            if(m.from===currentPriv || m.from===currentUser.email) {
-                const me=m.from===currentUser.email; const c=m.isGift?`<div style="text-align:center;background:#d97706;padding:10px;border-radius:10px;border:1px solid #fbbf24"><div style="font-size:30px">${m.icon}</div>${m.text}</div>`:m.text;
-                document.getElementById('p-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${c}</div></div>`;
-                document.getElementById('p-msgs').scrollTop=document.getElementById('p-msgs').scrollHeight;
-                document.getElementById('snd-msg').play().catch(()=>{});
-            } else { document.getElementById('nav-msg-badge').style.display='block'; notify('رسالة جديدة', 'لديك رسالة خاصة'); }
-        });
+        socket.on('receive_private_msg', (m)=>{ if(m.from===currentPriv || m.from===currentUser.email) { const me=m.from===currentUser.email; const c=m.isGift?`<div style="text-align:center;background:#d97706;padding:10px;border-radius:10px;border:1px solid #fbbf24"><div style="font-size:30px">${m.icon}</div>${m.text}</div>`:m.text; document.getElementById('p-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${c}</div></div>`; document.getElementById('p-msgs').scrollTop=document.getElementById('p-msgs').scrollHeight; if(!me) playSnd('snd-msg'); } else { document.getElementById('nav-msg-badge').style.display='block'; notify('رسالة جديدة','لديك رسالة خاصة'); } });
         function showGifts(){ document.getElementById('gift-balance').innerText=currentUser.coins; document.getElementById('gift-modal').style.display='flex'; }
         function sendGift(n, c, i){ if(currentUser.coins<c){notify('خطأ','رصيدك لا يكفي');return;} socket.emit('send_gift',{from:currentUser.email, to:currentPriv, giftName:n, cost:c, icon:i}); document.getElementById('gift-modal').style.display='none'; }
-        socket.on('update_coins', (c)=>{ currentUser.coins=c; document.getElementById('user-coins').innerText=c; document.getElementById('snd-coin').play().catch(()=>{}); });
+        socket.on('update_coins', (c)=>{ currentUser.coins=c; document.getElementById('user-coins').innerText=c; playSnd('snd-coin'); });
 
-        // Explore
+        // Context & Explore
         function addFriend(){ socket.emit('send_friend_request', {from:currentUser.email, to:document.getElementById('friend-email').value}); document.getElementById('friend-email').value=''; alert('تم الإرسال'); }
         function promptCreate(t){ const n=prompt('الاسم:'); if(n) t==='group'?socket.emit('create_group',{name:n,desc:'',owner:currentUser.email}):socket.emit('create_page',{name:n,owner:currentUser.email}); }
         socket.on('update_groups', (gs) => { document.getElementById('groups-list').innerHTML = gs.map(g=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join(''); });
         socket.on('update_pages', (ps) => { document.getElementById('pages-list').innerHTML = ps.map(p=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join(''); });
         socket.on('update_requests', (reqs) => { document.getElementById('req-badge-count').innerText = reqs.length; document.getElementById('nav-req-badge').style.display = reqs.length?'block':'none'; document.getElementById('req-list').innerHTML = reqs.map(r => `<div class="card" style="padding:10px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;gap:10px"><img src="${r.avatar}" class="avatar" style="width:30px;height:30px"> ${r.name}</div><button class="btn" style="font-size:10px;padding:5px" onclick="socket.emit('respond_friend_request',{userEmail:currentUser.email, requesterEmail:'${r.email}', accept:true})">قبول</button></div>`).join(''); });
-
-        // Context
         function enterContext(t,i,n,o){ currentContext=t;currentContextId=i; navTo('home'); document.getElementById('ctx-banner').style.display='block'; document.getElementById('ctx-title').innerText=n; document.getElementById('feed').innerHTML=''; socket.emit('get_context_posts',{context:t,contextId:i}); document.getElementById('ctx-del').style.display=(currentUser.email===o?'inline-block':'none'); }
         function leaveContext(){ currentContext='general';currentContextId=null; document.getElementById('ctx-banner').style.display='none'; document.getElementById('feed').innerHTML=''; socket.emit('get_context_posts',{context:'general',contextId:null}); }
         function deleteContext(){ if(confirm('حذف؟')){ if(currentContext==='group')socket.emit('delete_group',{groupId:currentContextId,email:currentUser.email}); else socket.emit('delete_page',{pageId:currentContextId,email:currentUser.email}); } }
         socket.on('delete_success', ()=>{ alert('تم الحذف'); leaveContext(); });
 
-        // Init
         socket.on('init_data', (d) => {
             document.getElementById('groups-list').innerHTML = d.groups.map(g=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join('');
             document.getElementById('pages-list').innerHTML = d.pages.map(p=>`<div class="card" style="padding:10px; cursor:pointer" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join('');
             document.getElementById('req-badge-count').innerText = (d.friendRequests||[]).length;
-            d.globalMessages.forEach(m => renderGlobalMsg(m));
+            d.globalMessages.forEach(m => { const me=m.email===currentUser.email; document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}" onclick="openProfile('${m.email}')"><b>${me?'':m.author+':'}</b> ${m.text}</div></div>`; });
             d.reels.forEach(r => renderReel(r));
         });
 
@@ -418,4 +386,4 @@
         socket.on('new_reel_comment', (d) => { const l = document.getElementById(`rc-list-${d.reelId}`); if(l) l.innerHTML += `<div class="comment-item"><img src="${d.comment.userAvatar}" class="avatar" style="width:25px;height:25px"><div><b>${d.comment.userName}</b><br>${d.comment.text}</div></div>`; });
     </script>
 </body>
-        </html>
+</html>

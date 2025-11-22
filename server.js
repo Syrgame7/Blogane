@@ -71,7 +71,7 @@ async function getAIResponse(prompt) {
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     // قائمة الموديلات للتجربة (الأحدث أولاً)
-    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]; 
+    const models = ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-pro"]; 
 
     for (const modelName of models) {
         try {

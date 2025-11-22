@@ -15,6 +15,7 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- إعدادات الملفات ---
 const DATA_FILE = 'database.json';
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 try { if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
@@ -35,7 +36,7 @@ loadData();
 
 function saveData() {
     try {
-        if(db.globalMessages.length > 300) db.globalMessages = db.globalMessages.slice(-300);
+        if(db.globalMessages.length > 400) db.globalMessages = db.globalMessages.slice(-400);
         if(db.posts.length > 200) db.posts = db.posts.slice(0, 200);
         fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
     } catch (e) { console.error("Save Error"); }
@@ -53,20 +54,22 @@ function saveBase64ToFile(base64Data, prefix) {
     } catch (e) { return null; }
 }
 
+// --- AI Logic ---
 async function getAIResponse(prompt) {
-    if (!process.env.GEMINI_API_KEY) return "مرحباً! أنا الذكاء الاصطناعي.";
+    if (!process.env.GEMINI_API_KEY) return "أهلاً! أنا مساعدك الذكي.";
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent(prompt);
         return (await result.response).text();
-    } catch (e) { return "لحظة من فضلك..."; }
+    } catch (e) { return "أواجه ضغطاً حالياً، سأرد لاحقاً!"; }
 }
 
+// --- Keep-Alive ---
 app.get('/ping', (req, res) => res.send('Pong'));
 setInterval(() => { try { http.get(`http://127.0.0.1:${process.env.PORT||3000}/ping`).on('error',()=>{}); } catch(e){} }, 240000);
 
-// 130 Bots
+// --- 130 Active Bots ---
 const names = ["أحمد", "محمد", "محمود", "علي", "عمر", "خالد", "يوسف", "إبراهيم", "حسن", "سعيد", "مصطفى", "عبدالله", "كريم", "طارق", "زياد", "ياسر", "سامي", "فهد", "سلمان", "فيصل", "ماجد", "نايف", "وليد", "هاني", "جمال", "رامي", "سمير", "عادل", "نور", "سارة", "ليلى", "مريم", "فاطمة", "عائشة", "زينب", "هدى", "منى", "هند", "سلمى", "ندى", "ياسمين", "رنا", "داليا", "ريم", "أمل", "حنان", "سعاد", "وفاء", "لمياء", "شروق"];
 const surnames = ["المصري", "العلي", "محمد", "أحمد", "محمود", "حسن", "إبراهيم", "سعيد", "كمال", "جمال", "فوزي", "صلاح", "يوسف", "عبدالله", "عمر", "خالد", "سالم", "غانم", "حامد", "نور", "الشمري", "الغامدي", "القحطاني", "الزهراني", "الدوسري"];
 
@@ -77,7 +80,7 @@ for(let i=0; i<130; i++) {
         db.users.push({
             id: Date.now() + i, name: n, email: email, password: 'bot',
             avatar: `https://ui-avatars.com/api/?name=${n.replace(' ','+')}&background=random&color=fff`,
-            bio: 'Bot AI 🤖', isBot: true, isOnline: true, coins: 50000
+            bio: 'Bot AI 🤖', isBot: true, isOnline: true, coins: 5000
         });
     }
 }
@@ -85,7 +88,7 @@ saveData();
 
 let connectedSockets = {}; 
 
-// Bot Simulation
+// --- Simulation Loop ---
 const botMsgs = ["صباح الخير", "تطبيق رائع", "صورة جميلة", "سبحان الله", "مساء الورد", "مين موجود؟", "جمعة مباركة", "تحياتي", "روعة", "استمر"];
 const giftTypes = ["وردة 🌹", "قلب ❤️", "سيارة 🏎️", "طائرة ✈️"];
 
@@ -98,16 +101,16 @@ setInterval(() => {
 
         if(!bot) return;
 
-        if (action < 0.1) { // Post
+        if (action < 0.1) { 
             const p = { id: Date.now(), author: bot.name, email: bot.email, avatar: bot.avatar, content: botMsgs[Math.floor(Math.random()*botMsgs.length)], media: null, likes: [], comments: [], date: new Date().toISOString(), context:'general', contextId:null };
             db.posts.unshift(p); io.emit('receive_post', p);
-        } else if (action < 0.2) { // Gift Ticker Simulation
+        } else if (action < 0.15) { 
              const gift = giftTypes[Math.floor(Math.random() * giftTypes.length)];
              io.emit('gift_broadcast', { from: bot.name, to: receiver.name, gift: gift, avatar: bot.avatar });
         }
         saveData();
     } catch(e) {}
-}, 4000);
+}, 3000);
 
 io.on('connection', (socket) => {
     
@@ -123,7 +126,11 @@ io.on('connection', (socket) => {
             socket.emit('auth_success', u);
             socket.emit('init_data', { groups: db.groups, pages: db.pages, reels: db.reels, globalMessages: db.globalMessages, friendRequests: db.friendRequests });
             socket.emit('load_posts', (db.posts||[]).filter(p => p.context === 'general'));
-            updateFriendsList(u.email); checkFriendRequests(u.email);
+            // تحديث قائمة الأصدقاء
+            const fs = db.friendships.filter(f => f.user1 === u.email || f.user2 === u.email);
+            const fEmails = fs.map(f => f.user1 === u.email ? f.user2 : f.user1);
+            const fData = db.users.filter(x => fEmails.includes(x.email)).map(x => ({name:x.name, email:x.email, avatar:x.avatar, isOnline:!!connectedSockets[x.email]||x.isBot}));
+            socket.emit('update_friends', fData);
         } else { socket.emit('auth_error', 'بيانات خاطئة'); }
     });
 
@@ -134,7 +141,7 @@ io.on('connection', (socket) => {
     socket.on('toggle_like_reel', ({id, userEmail}) => { const r=db.reels.find(x=>x.id==id); if(r){ if(!r.likes)r.likes=[]; if(r.likes.includes(userEmail))r.likes=r.likes.filter(e=>e!==userEmail); else r.likes.push(userEmail); saveData(); io.emit('update_reel_stats', {id, likes:r.likes.length, comments:r.comments?r.comments.length:0}); } });
     socket.on('comment_reel', ({id, text, userEmail, userName, userAvatar}) => { const r=db.reels.find(x=>x.id==id); if(r){ if(!r.comments)r.comments=[]; const c={id:Date.now(),text,userEmail,userName,userAvatar}; r.comments.push(c); saveData(); io.emit('update_reel_stats', {id, likes:r.likes?r.likes.length:0, comments:r.comments.length}); io.emit('new_reel_comment', {reelId:id, comment:c}); } });
 
-    // Context (Groups/Pages)
+    // Context
     socket.on('create_group', (d)=>{const g={id:'g'+Date.now(),...d,members:[d.owner]}; db.groups.push(g); saveData(); io.emit('update_groups', db.groups);});
     socket.on('create_page', (d)=>{const p={id:'p'+Date.now(),...d,followers:[d.owner]}; db.pages.push(p); saveData(); io.emit('update_pages', db.pages);});
     socket.on('delete_group', ({groupId, email}) => { const i=db.groups.findIndex(g=>g.id===groupId); if(i!==-1 && db.groups[i].owner===email){ db.groups.splice(i,1); saveData(); io.emit('update_groups', db.groups); socket.emit('delete_success'); } });
@@ -158,7 +165,7 @@ io.on('connection', (socket) => {
         } else socket.emit('notification', {title: 'عفواً', body: 'رصيدك لا يكفي'});
     });
 
-    // Chat
+    // Chat & Profile
     socket.on('send_ai_msg', async (t) => { const r = await getAIResponse(t); socket.emit('receive_ai_msg', {text: r}); });
     socket.on('send_private_msg', (d) => {
         const m = { ...d, id: Date.now(), date: new Date().toISOString() }; db.privateMessages.push(m); saveData();
@@ -170,15 +177,23 @@ io.on('connection', (socket) => {
     socket.on('get_private_msgs', ({u1, u2}) => { socket.emit('load_private_msgs', db.privateMessages.filter(m => (m.from===u1&&m.to===u2) || (m.from===u2&&m.to===u1))); });
     socket.on('send_global_msg', (d) => { let u=d.image?saveBase64ToFile(d.image,'chat'):null; const m={...d,image:u,id:Date.now(),date:new Date().toISOString()}; db.globalMessages.push(m); saveData(); io.emit('receive_global_msg', m); });
 
+    // Profile Fix
+    socket.on('get_profile_info', (e) => { 
+        const u=db.users.find(x=>x.email===e); 
+        if(u) { 
+            const fs=db.friendships.filter(f=>f.user1===e||f.user2===e); 
+            const fEmails=fs.map(f=>f.user1===e?f.user2:f.user1); 
+            const friends=db.users.filter(x=>fEmails.includes(x.email)).map(x=>({name:x.name, avatar:x.avatar, email:x.email})); 
+            socket.emit('open_profile_view', {user:u, posts:(db.posts||[]).filter(p=>p.email===e), friends}); 
+        } 
+    });
+    socket.on('update_profile', (d) => { const i=db.users.findIndex(u=>u.email===d.email); if(i!==-1){ db.users[i].name=d.name; db.users[i].bio=d.bio; if(d.avatar&&d.avatar.startsWith('data:'))db.users[i].avatar=saveBase64ToFile(d.avatar,'avatar'); saveData(); socket.emit('profile_updated_success', db.users[i]); } });
+
     // Standard
     socket.on('toggle_like', ({id, type, userEmail}) => { let x=(type==='reel'?db.reels:db.posts).find(i=>i.id==id); if(x){ if(x.likes.includes(userEmail))x.likes=x.likes.filter(e=>e!==userEmail); else x.likes.push(userEmail); saveData(); io.emit('update_likes', {id, type, likes:x.likes}); } });
     socket.on('add_comment', (d) => { const p=db.posts.find(x=>x.id==d.postId); if(p){ p.comments.push({id:Date.now(), ...d}); saveData(); io.emit('update_comments', {postId:d.postId, comments:p.comments}); } });
-    socket.on('update_profile', (d) => { const i=db.users.findIndex(u=>u.email===d.email); if(i!==-1){ db.users[i].name=d.name; db.users[i].bio=d.bio; if(d.avatar&&d.avatar.startsWith('data:'))db.users[i].avatar=saveBase64ToFile(d.avatar,'avatar'); saveData(); socket.emit('profile_updated_success', db.users[i]); } });
-    socket.on('get_profile_info', (e) => { const u=db.users.find(x=>x.email===e); if(u) { const fs=db.friendships.filter(f=>f.user1===e||f.user2===e); const fEmails=fs.map(f=>f.user1===e?f.user2:f.user1); const friends=db.users.filter(x=>fEmails.includes(x.email)).map(x=>({name:x.name, avatar:x.avatar, email:x.email})); socket.emit('open_profile_view', {user:u, posts:(db.posts||[]).filter(p=>p.email===e), friends}); } });
-    socket.on('send_friend_request', (d) => { if(d.from!==d.to && !db.friendRequests.find(r=>r.from===d.from&&r.to===d.to)) { db.friendRequests.push({from:d.from, to:d.to}); saveData(); const t=db.users.find(u=>u.email===d.to); if(t&&t.isBot){ setTimeout(()=>{ db.friendRequests=db.friendRequests.filter(r=>!(r.from===d.from&&r.to===d.to)); db.friendships.push({user1:d.from,user2:d.to}); saveData(); updateFriendsList(d.from); },1500); } else { checkFriendRequests(d.to); for(let [e, sId] of Object.entries(connectedSockets)) if(e===d.to) io.to(sId).emit('new_req_alert'); } } });
-    socket.on('respond_friend_request', (d) => { db.friendRequests=db.friendRequests.filter(r=>!(r.to===d.userEmail && r.from===d.requesterEmail)); if(d.accept) { db.friendships.push({user1:d.userEmail, user2:d.requesterEmail}); updateFriendsList(d.userEmail); updateFriendsList(d.requesterEmail); } saveData(); checkFriendRequests(d.userEmail); });
-    function checkFriendRequests(email) { const reqs=db.friendRequests.filter(r=>r.to===email); const data=reqs.map(r=>{const s=db.users.find(u=>u.email===r.from); return {email:r.from, name:s?s.name:'Unknown', avatar:s?s.avatar:''};}); for(let [e, sId] of Object.entries(connectedSockets)) if(e===email) io.to(sId).emit('update_requests', data); }
-    function updateFriendsList(email) { const fs=db.friendships.filter(f=>f.user1===email||f.user2===email); const es=fs.map(f=>f.user1===email?f.user2:f.user1); const fData=db.users.filter(u=>es.includes(u.email)).map(u=>({name:u.name, email:u.email, avatar:u.avatar, isOnline:!!Object.values(connectedSockets).includes(u.email)||u.isBot})); for(let [e, sId] of Object.entries(connectedSockets)) if(e===email) io.to(sId).emit('update_friends', fData); }
+    socket.on('send_friend_request', (d) => { if(d.from!==d.to && !db.friendRequests.find(r=>r.from===d.from&&r.to===d.to)) { db.friendRequests.push({from:d.from, to:d.to}); saveData(); const t=db.users.find(u=>u.email===d.to); if(t&&t.isBot){ setTimeout(()=>{ db.friendRequests=db.friendRequests.filter(r=>!(r.from===d.from&&r.to===d.to)); db.friendships.push({user1:d.from,user2:d.to}); saveData(); const fs=db.friendships.filter(f=>f.user1===d.from||f.user2===d.from); const fe=fs.map(f=>f.user1===d.from?f.user2:f.user1); const fd=db.users.filter(u=>fe.includes(u.email)).map(u=>({name:u.name,email:u.email,avatar:u.avatar,isOnline:!!connectedSockets[u.email]||u.isBot})); socket.emit('update_friends', fd); },1500); } else { for(let [e, sId] of Object.entries(connectedSockets)) if(e===d.to) { io.to(sId).emit('new_req_alert'); io.to(sId).emit('update_requests', [d]); } } } });
+    socket.on('respond_friend_request', (d) => { db.friendRequests=db.friendRequests.filter(r=>!(r.to===d.userEmail && r.from===d.requesterEmail)); if(d.accept) { db.friendships.push({user1:d.userEmail, user2:d.requesterEmail}); } saveData(); });
 
     socket.on('disconnect', () => {
         for(let [email, sId] of Object.entries(connectedSockets)) { if(sId===socket.id) { const u=db.users.find(x=>x.email===email); if(u){u.isOnline=false; saveData();} delete connectedSockets[email]; break; } }

@@ -15,16 +15,14 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- إعداد الملفات ---
+// --- ملفات النظام ---
 const DATA_FILE = 'database.json';
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 try { if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
 
-// قاعدة البيانات
 const defaultDB = { users: [], posts: [], reels: [], groups: [], pages: [], friendRequests: [], friendships: [], globalMessages: [], privateMessages: [] };
 let db = { ...defaultDB };
 
-// تحميل آمن للبيانات
 function loadData() {
     if (fs.existsSync(DATA_FILE)) {
         try {
@@ -58,23 +56,22 @@ function saveBase64ToFile(base64Data, prefix) {
 
 // --- AI ---
 async function getAIResponse(prompt) {
-    if (!process.env.GEMINI_API_KEY) return "مرحباً! أنا الذكاء الاصطناعي.";
+    if (!process.env.GEMINI_API_KEY) return "أهلاً! كيف يمكنني مساعدتك؟";
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);
         return (await result.response).text();
-    } catch (e) { return "لحظة من فضلك..."; }
+    } catch (e) { return "أنا مشغول حالياً، سأرد لاحقاً."; }
 }
 
-// --- Keep-Alive ---
+// --- Keep Alive ---
 app.get('/ping', (req, res) => res.send('Pong'));
 setInterval(() => { try { http.get(`http://127.0.0.1:${process.env.PORT||3000}/ping`).on('error',()=>{}); } catch(e){} }, 240000);
 
-// --- 130 Bots Setup ---
+// --- Bots Setup ---
 const names = ["أحمد", "محمد", "محمود", "علي", "عمر", "خالد", "يوسف", "إبراهيم", "حسن", "سعيد", "مصطفى", "عبدالله", "كريم", "طارق", "زياد", "ياسر", "سامي", "فهد", "سلمان", "فيصل", "ماجد", "نايف", "وليد", "هاني", "جمال", "رامي", "سمير", "عادل", "نور", "سارة", "ليلى", "مريم", "فاطمة", "عائشة", "زينب", "هدى", "منى", "هند", "سلمى", "ندى", "ياسمين", "رنا", "داليا", "ريم", "أمل", "حنان", "سعاد", "وفاء", "لمياء", "شروق"];
 const surnames = ["المصري", "العلي", "محمد", "أحمد", "محمود", "حسن", "إبراهيم", "سعيد", "كمال", "جمال", "فوزي", "صلاح", "يوسف", "عبدالله", "عمر", "خالد", "سالم", "غانم", "حامد", "نور", "الشمري", "الغامدي", "القحطاني", "الزهراني", "الدوسري"];
-const bios = ["أحب الحياة والتفاؤل 🌸", "مصور فوتوغرافي 📸", "مبرمج ومطور 💻", "عاشق القهوة ☕", "قارئ نهم 📚", "مهندس معماري 🏗️", "طبيب المستقبل 🩺", "لاعب محترف 🎮"];
 
 for(let i=0; i<130; i++) {
     const email = `bot${i}@blogane.com`;
@@ -83,8 +80,7 @@ for(let i=0; i<130; i++) {
         db.users.push({
             id: Date.now() + i, name: n, email: email, password: 'bot',
             avatar: `https://ui-avatars.com/api/?name=${n.replace(' ','+')}&background=random&color=fff`,
-            bio: bios[Math.floor(Math.random()*bios.length)], 
-            isBot: true, isOnline: true, coins: 50000
+            bio: 'Bot AI 🤖', isBot: true, isOnline: true, coins: 50000
         });
     }
 }
@@ -105,10 +101,10 @@ setInterval(() => {
 
         if(!sender) return;
 
-        if (action < 0.15) { // Ticker Gift
+        if (action < 0.15) { 
              const gift = giftTypes[Math.floor(Math.random() * giftTypes.length)];
              io.emit('gift_broadcast', { from: sender.name, to: receiver.name, gift: gift, avatar: sender.avatar });
-        } else if (action < 0.25) { // Post
+        } else if (action < 0.25) { 
             const p = { id: Date.now(), author: sender.name, email: sender.email, avatar: sender.avatar, content: botMsgs[Math.floor(Math.random()*botMsgs.length)], media: null, likes: [], comments: [], date: new Date().toISOString(), context:'general', contextId:null };
             db.posts.unshift(p); io.emit('receive_post', p);
         }
@@ -118,7 +114,6 @@ setInterval(() => {
 
 io.on('connection', (socket) => {
     
-    // Auth
     socket.on('register', (d) => {
         if (db.users.find(u => u.email === d.email)) socket.emit('auth_error', 'البريد مسجل');
         else { const u = { ...d, id: Date.now(), avatar: `https://ui-avatars.com/api/?name=${d.name}&background=random`, bio: 'جديد', isOnline: true, coins: 100 }; db.users.push(u); saveData(); socket.emit('auth_success', u); }
@@ -131,34 +126,34 @@ io.on('connection', (socket) => {
             socket.emit('auth_success', u);
             socket.emit('init_data', { groups: db.groups, pages: db.pages, reels: db.reels, globalMessages: db.globalMessages, friendRequests: db.friendRequests });
             socket.emit('load_posts', (db.posts||[]).filter(p => p.context === 'general'));
-            updateFriendsList(u.email); checkFriendRequests(u.email);
+            // Load Friends
+            const fs=db.friendships.filter(f=>f.user1===u.email||f.user2===u.email);
+            const fe=fs.map(f=>f.user1===u.email?f.user2:f.user1);
+            const fd=db.users.filter(x=>fe.includes(x.email)).map(x=>({name:x.name,email:x.email,avatar:x.avatar,isOnline:!!connectedSockets[x.email]||x.isBot}));
+            socket.emit('update_friends', fd);
         } else { socket.emit('auth_error', 'بيانات خاطئة'); }
     });
 
-    // --- Rewards (Bonus & Games) ---
+    // --- Game Rewards ---
+    socket.on('game_result', ({email, reward}) => {
+        const u = db.users.find(x => x.email === email);
+        if(u) { u.coins += reward; saveData(); socket.emit('update_coins', u.coins); }
+    });
     socket.on('claim_bonus', (email) => {
         const u = db.users.find(x => x.email === email);
-        if(u) {
-            u.coins += 50; // مكافأة الـ 10 دقائق
-            saveData();
-            socket.emit('update_coins', u.coins);
-            socket.emit('notification', {title: 'مكافأة!', body: 'حصلت على 50 كوينز'});
-        }
+        if(u) { u.coins += 50; saveData(); socket.emit('update_coins', u.coins); socket.emit('notification', {title:'مكافأة', body:'50 كوينز!'}); }
     });
 
-    socket.on('play_game', ({email, game, score}) => {
-        const u = db.users.find(x => x.email === email);
-        if(u) {
-            // منطق بسيط للمكافأة حسب اللعبة
-            const reward = Math.floor(Math.random() * 20) + 5; 
-            u.coins += reward;
-            saveData();
-            socket.emit('update_coins', u.coins);
-            socket.emit('notification', {title: 'فوز!', body: `ربحت ${reward} كوينز في ${game}`});
-        }
+    // --- Search ---
+    socket.on('search_users', (query) => {
+        if(!query) return;
+        const results = db.users.filter(u => u.name.toLowerCase().includes(query.toLowerCase())).slice(0, 15).map(u => ({
+            name: u.name, email: u.email, avatar: u.avatar, isBot: u.isBot
+        }));
+        socket.emit('search_results', results);
     });
 
-    // --- Standard Features (Same as before) ---
+    // --- Standard Features ---
     socket.on('new_post', (d) => { let u=d.media&&d.media.startsWith('data:')?saveBase64ToFile(d.media,'post'):null; const p={...d,id:Date.now(),media:u,likes:[],comments:[],date:new Date().toISOString()}; db.posts.unshift(p); const uObj=db.users.find(x=>x.email===d.email); if(uObj){uObj.coins+=10;socket.emit('update_coins',uObj.coins);} saveData(); io.emit('receive_post', p); socket.emit('upload_complete'); });
     socket.on('new_reel', (d) => { let u=saveBase64ToFile(d.videoBase64,'reel'); if(u){ const r={id:Date.now(),url:u,desc:d.desc,author:d.author,avatar:d.avatar,email:d.email,likes:[],comments:[]}; db.reels.unshift(r); saveData(); io.emit('receive_reel', {...r,videoBase64:null}); socket.emit('upload_complete'); } });
     socket.on('toggle_like_reel', ({id, userEmail}) => { const r=db.reels.find(x=>x.id==id); if(r){ if(!r.likes)r.likes=[]; if(r.likes.includes(userEmail))r.likes=r.likes.filter(e=>e!==userEmail); else r.likes.push(userEmail); saveData(); io.emit('update_reel_stats', {id, likes:r.likes.length, comments:r.comments?r.comments.length:0}); } });
@@ -170,11 +165,37 @@ io.on('connection', (socket) => {
     socket.on('get_context_posts', ({context, contextId}) => { socket.emit('load_posts', db.posts.filter(p => p.context === context && p.contextId === contextId)); });
     socket.on('send_gift', (d) => { const s=db.users.find(u=>u.email===d.from); const r=db.users.find(u=>u.email===d.to); if(s&&s.coins>=d.cost){ s.coins-=d.cost; if(r)r.coins=(r.coins||0)+d.cost; const m={id:Date.now(),from:d.from,to:d.to,text:`أرسل هدية: ${d.giftName} ${d.icon}`,isGift:true,icon:d.icon,date:new Date().toISOString()}; db.privateMessages.push(m); saveData(); socket.emit('update_coins',s.coins); socket.emit('gift_broadcast', {from:s.name,to:r?r.name:"Unknown",gift:`${d.giftName} ${d.icon}`,avatar:s.avatar}); for(let [e,sId] of Object.entries(connectedSockets)){ if(e===d.to){io.to(sId).emit('receive_private_msg',m);io.to(sId).emit('update_coins',r.coins);io.to(sId).emit('notification',{title:'هدية!',body:'وصلتك هدية'});} if(e===d.from) io.to(sId).emit('receive_private_msg',m); } } else socket.emit('notification',{title:'عفواً',body:'رصيدك لا يكفي'}); });
     socket.on('send_ai_msg', async (t) => { const r = await getAIResponse(t); socket.emit('receive_ai_msg', {text: r}); });
-    socket.on('send_private_msg', (d) => { const m={...d,id:Date.now(),date:new Date().toISOString()}; db.privateMessages.push(m); saveData(); socket.emit('receive_private_msg',m); const t=db.users.find(u=>u.email===d.to); if(t&&t.isBot){ setTimeout(async()=>{const r=await getAIResponse(d.text); db.privateMessages.push({id:Date.now(),from:d.to,to:d.from,text:r,date:new Date().toISOString()}); saveData(); socket.emit('receive_private_msg',{from:d.to,text:r});},2000); } else if(connectedSockets[d.to]){ io.to(connectedSockets[d.to]).emit('receive_private_msg',m); io.to(connectedSockets[d.to]).emit('notification',{title:'رسالة',body:'لديك رسالة جديدة'}); } });
+    
+    // Private Chat Fix
+    socket.on('send_private_msg', (d) => {
+        const m = { ...d, id: Date.now(), date: new Date().toISOString() }; 
+        db.privateMessages.push(m); saveData();
+        
+        // Send to Sender
+        socket.emit('receive_private_msg', m);
+        
+        const target = db.users.find(u => u.email === d.to);
+        if(target && target.isBot) {
+            setTimeout(async()=>{
+                const r=await getAIResponse(d.text); 
+                const bm={id:Date.now(),from:d.to,to:d.from,text:r,date:new Date().toISOString()};
+                db.privateMessages.push(bm); saveData(); 
+                socket.emit('receive_private_msg',bm);
+            }, 2000);
+        } else {
+            for(let [e, sId] of Object.entries(connectedSockets)) {
+                if(e===d.to) { 
+                    io.to(sId).emit('receive_private_msg', m); 
+                    io.to(sId).emit('notification', {title:'رسالة', body:'لديك رسالة جديدة'}); 
+                }
+            }
+        }
+    });
     socket.on('get_private_msgs', ({u1, u2}) => { socket.emit('load_private_msgs', db.privateMessages.filter(m => (m.from===u1&&m.to===u2) || (m.from===u2&&m.to===u1))); });
+
     socket.on('send_global_msg', (d) => { let u=d.image?saveBase64ToFile(d.image,'chat'):null; const m={...d,image:u,id:Date.now(),date:new Date().toISOString()}; db.globalMessages.push(m); saveData(); io.emit('receive_global_msg', m); });
     socket.on('get_profile_info', (e) => { const u=db.users.find(x=>x.email===e); if(u) { const fs=db.friendships.filter(f=>f.user1===e||f.user2===e); const fEmails=fs.map(f=>f.user1===e?f.user2:f.user1); const friends=db.users.filter(x=>fEmails.includes(x.email)).map(x=>({name:x.name, avatar:x.avatar, email:x.email})); socket.emit('open_profile_view', {user:u, posts:(db.posts||[]).filter(p=>p.email===e), friends}); } });
-    socket.on('update_profile', (d) => { const i=db.users.findIndex(u=>u.email===d.email); if(i!==-1){ db.users[i].name=d.name; db.users[i].bio=d.bio; if(d.avatar&&d.avatar.startsWith('data:'))db.users[i].avatar=saveBase64ToFile(d.avatar,'avatar'); saveData(); const u=db.users[i]; db.posts.forEach(p=>{if(p.email===u.email){p.author=u.name;p.avatar=u.avatar}}); socket.emit('profile_updated_success', u); } });
+    socket.on('update_profile', (d) => { const i=db.users.findIndex(u=>u.email===d.email); if(i!==-1){ db.users[i].name=d.name; db.users[i].bio=d.bio; if(d.avatar&&d.avatar.startsWith('data:'))db.users[i].avatar=saveBase64ToFile(d.avatar,'avatar'); saveData(); socket.emit('profile_updated_success', db.users[i]); } });
     socket.on('toggle_like', ({id, type, userEmail}) => { let x=(type==='reel'?db.reels:db.posts).find(i=>i.id==id); if(x){ if(x.likes.includes(userEmail))x.likes=x.likes.filter(e=>e!==userEmail); else x.likes.push(userEmail); saveData(); io.emit('update_likes', {id, type, likes:x.likes}); } });
     socket.on('add_comment', (d) => { const p=db.posts.find(x=>x.id==d.postId); if(p){ p.comments.push({id:Date.now(), ...d}); saveData(); io.emit('update_comments', {postId:d.postId, comments:p.comments}); } });
     socket.on('send_friend_request', (d) => { if(d.from!==d.to && !db.friendRequests.find(r=>r.from===d.from&&r.to===d.to)) { db.friendRequests.push({from:d.from, to:d.to}); saveData(); const t=db.users.find(u=>u.email===d.to); if(t&&t.isBot){ setTimeout(()=>{ db.friendRequests=db.friendRequests.filter(r=>!(r.from===d.from&&r.to===d.to)); db.friendships.push({user1:d.from,user2:d.to}); saveData(); const fs=db.friendships.filter(f=>f.user1===d.from||f.user2===d.from); const fe=fs.map(f=>f.user1===d.from?f.user2:f.user1); const fd=db.users.filter(u=>fe.includes(u.email)).map(u=>({name:u.name,email:u.email,avatar:u.avatar,isOnline:!!connectedSockets[u.email]||u.isBot})); socket.emit('update_friends', fd); },1500); } else { for(let [e, sId] of Object.entries(connectedSockets)) if(e===d.to) { io.to(sId).emit('new_req_alert'); io.to(sId).emit('update_requests', [d]); } } } });
@@ -182,9 +203,6 @@ io.on('connection', (socket) => {
     socket.on('upload_reel_start', ({name}) => { const f=`reel_${Date.now()}_${Math.floor(Math.random()*1000)}${path.extname(name)}`; fs.open(path.join(UPLOAD_DIR,f),'w',(e,fd)=>{if(!e)fs.close(fd,()=>socket.emit('upload_ready',{tempFileName:f}));}); });
     socket.on('upload_reel_chunk', ({fileName, data}) => { try{fs.appendFileSync(path.join(UPLOAD_DIR,fileName), data);}catch(e){} });
     socket.on('upload_reel_end', (d)=>{ const r={id:Date.now(),url:`/uploads/${d.fileName}`,desc:d.desc,author:d.author,avatar:d.avatar,email:d.email,likes:[],comments:[]}; db.reels.unshift(r); saveData(); io.emit('receive_reel', r); socket.emit('upload_complete'); });
-    
-    function updateFriendsList(email) { /* ... */ }
-    function checkFriendRequests(email) { /* ... */ }
 
     socket.on('disconnect', () => {
         for(let [email, sId] of Object.entries(connectedSockets)) { if(sId===socket.id) { const u=db.users.find(x=>x.email===email); if(u){u.isOnline=false; saveData();} delete connectedSockets[email]; break; } }

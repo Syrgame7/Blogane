@@ -3,103 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blogane Diamond</title>
+    <title>Blogane Final</title>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #0f172a; --panel: rgba(30, 41, 59, 0.95); --primary: #8b5cf6; --accent: #d946ef; --gold: #fbbf24; 
-            --text: #f8fafc; --gray: #94a3b8; --glass: blur(16px); --border: 1px solid rgba(255, 255, 255, 0.1);
+            --bg: #05050a; --panel: rgba(22, 22, 28, 0.95); --primary: #8b5cf6; --accent: #ec4899; --gold: #fbbf24; 
+            --text: #ffffff; --gray: #9ca3af; --border: 1px solid rgba(255, 255, 255, 0.1); --glass: blur(12px);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); background-image: radial-gradient(circle at top, #1e1b4b 0%, transparent 50%), radial-gradient(circle at bottom, #4c0519 0%, transparent 50%); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
         /* Core UI */
-        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4); }
-        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 18px; padding: 15px; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
-        .input-box { width: 100%; background: rgba(0,0,0,0.3); border: var(--border); padding: 12px; border-radius: 12px; color: white; outline: none; }
+        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 18px; border-radius: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.4); transition: 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .input-box { width: 100%; background: rgba(0,0,0,0.4); border: var(--border); padding: 12px; border-radius: 14px; color: white; outline: none; }
         .avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
 
-        /* Roulette Game */
-        .wheel-container { position: relative; width: 280px; height: 280px; margin: 20px auto; border-radius: 50%; border: 5px solid var(--gold); box-shadow: 0 0 20px var(--gold); overflow: hidden; transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); }
-        .wheel-segment { position: absolute; width: 50%; height: 50%; background: var(--primary); transform-origin: 100% 100%; top: 0; left: 0; clip-path: polygon(100% 100%, 0 0, 100% 0); }
-        /* Simplified Visual Wheel for CSS */
-        .visual-wheel { width: 100%; height: 100%; background: conic-gradient(
-            #ef4444 0deg 45deg, #f97316 45deg 90deg, #f59e0b 90deg 135deg, 
-            #10b981 135deg 180deg, #06b6d4 180deg 225deg, #3b82f6 225deg 270deg, 
-            #8b5cf6 270deg 315deg, #ec4899 315deg 360deg); border-radius: 50%;
-        }
-        .wheel-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid white; z-index: 10; }
-        .spin-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; background: white; border: none; font-weight: bold; color: black; cursor: pointer; box-shadow: 0 0 15px rgba(255,255,255,0.5); z-index: 5; }
+        /* Roulette */
+        .wheel-container { position: relative; width: 260px; height: 260px; margin: 20px auto; border-radius: 50%; border: 6px solid var(--gold); box-shadow: 0 0 25px var(--gold); overflow: hidden; transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1); }
+        /* Wheel Segments with Emoji & Value */
+        .wheel { width: 100%; height: 100%; position: relative; background: conic-gradient(#ef4444 0deg 60deg, #3b82f6 60deg 120deg, #10b981 120deg 180deg, #f59e0b 180deg 240deg, #8b5cf6 240deg 300deg, #ec4899 300deg 360deg); }
+        .segment-text { position: absolute; top: 10%; left: 50%; transform-origin: 50% 120px; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black; text-align: center; width: 40px; margin-left: -20px; color: white; }
+        .wheel-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid white; z-index: 10; filter: drop-shadow(0 2px 2px black); }
+        .spin-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; border-radius: 50%; background: white; border: 4px solid var(--primary); color: var(--primary); font-weight: 900; cursor: pointer; box-shadow: 0 0 15px rgba(255,255,255,0.5); z-index: 5; }
 
-        /* Nav & Header */
-        .bottom-nav { height: 75px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); padding-bottom: 5px; border-radius: 20px 20px 0 0; }
-        .nav-item { color: var(--gray); font-size: 22px; cursor: pointer; transition: 0.3s; position: relative; }
-        .nav-item.active { color: var(--primary); transform: translateY(-5px); }
-        .header { padding: 15px 20px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
-        .badge { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
+        /* Floating B (Moved to Top Right to avoid input) */
+        .floating-b { position: fixed; top: 90px; right: 20px; width: 50px; height: 50px; background: linear-gradient(135deg, var(--gold), #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: white; box-shadow: 0 0 20px rgba(245, 158, 11, 0.6); z-index: 900; cursor: pointer; animation: float 3s infinite; border: 2px solid rgba(255,255,255,0.5); }
+        .floating-b.disabled { filter: grayscale(1); animation: none; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-        /* Views */
+        /* Nav */
+        .bottom-nav { height: 75px; background: rgba(15, 15, 20, 0.95); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); padding-bottom: 5px; border-radius: 25px 25px 0 0; }
+        .nav-item { color: var(--gray); font-size: 24px; cursor: pointer; transition: 0.3s; position: relative; }
+        .nav-item.active { color: var(--primary); transform: translateY(-6px); text-shadow: 0 0 10px var(--primary); }
+        
+        /* Other */
         .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 100px; }
         .view.active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-
-        /* Floating Ticker & B */
-        .floating-ticker { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); width: 85%; max-width: 400px; height: 45px; background: linear-gradient(135deg, #6366f1, #3b82f6); border-radius: 30px; z-index: 2000; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(99, 102, 241, 0.5); transition: 0.5s; opacity: 0; }
+        .header { padding: 15px 20px; background: rgba(15, 15, 20, 0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); }
+        .floating-ticker { position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-100px); width: 85%; max-width: 400px; height: 45px; background: linear-gradient(135deg, #6366f1, #3b82f6); border-radius: 30px; z-index: 2000; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6); transition: 0.5s; opacity: 0; }
         .floating-ticker.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .ticker-content { display: flex; align-items: center; gap: 10px; color: white; font-weight: bold; font-size: 13px; }
-        .floating-b { position: fixed; bottom: 90px; right: 20px; width: 60px; height: 60px; background: linear-gradient(135deg, var(--gold), #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: white; box-shadow: 0 0 20px rgba(245, 158, 11, 0.6); z-index: 1000; cursor: pointer; animation: float 3s infinite; border: 2px solid rgba(255,255,255,0.5); }
-        .floating-b.disabled { filter: grayscale(1); animation: none; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-
-        /* Other */
-        .post-img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 450px; object-fit: cover; }
-        .actions { display: flex; gap: 25px; margin-top: 15px; padding-top: 12px; border-top: var(--border); color: var(--gray); }
-        .act-btn { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-        .liked { color: var(--accent); }
-        .comments-area { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .msg-bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; margin-bottom: 8px; font-size: 14px; }
-        .msg-me { background: var(--primary); align-self: flex-start; }
-        .msg-other { background: #334155; align-self: flex-end; }
-        .profile-cover { height: 160px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 30px 30px; position: relative; margin-bottom: 60px; }
-        .profile-pic-lg { width: 110px; height: 110px; border-radius: 50%; border: 5px solid var(--bg); position: absolute; bottom: -55px; right: 50%; transform: translateX(50%); object-fit: cover; }
-        .coins-badge { background: rgba(251, 191, 36, 0.15); color: var(--gold); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; border: 1px solid rgba(251, 191, 36, 0.5); display: flex; align-items: center; gap: 6px; }
-        
-        .reel-item { height: calc(100vh - 75px); background: black; position: relative; scroll-snap-align: start; display: flex; justify-content: center; }
-        .reel-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; pointer-events: auto; }
-        .r-btn { display: flex; flex-direction: column; align-items: center; color: white; text-shadow: 1px 1px 2px black; cursor: pointer; }
-        .reel-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to top, rgba(0,0,0,0.9), transparent); pointer-events: none; }
-
         .loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 3000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 1s infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
-        .modal-box { background: #1e293b; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; border: var(--border); }
+        .modal-box { background: #1e1e24; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; border: var(--border); }
+        
+        /* Post & Chat Specifics */
+        .post-img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 400px; object-fit: cover; }
+        .actions { display: flex; gap: 25px; margin-top: 15px; padding-top: 12px; border-top: var(--border); color: var(--gray); }
+        .act-btn { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 8px; }
+        .act-btn:hover { background: rgba(255,255,255,0.05); }
+        .liked { color: var(--accent); }
+        .comments-area { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); animation: slide 0.2s; }
+        @keyframes slide { from{transform:translateY(-10px);opacity:0} to{transform:translateY(0);opacity:1} }
+        .msg-bubble { padding: 10px 15px; border-radius: 18px; max-width: 75%; margin-bottom: 8px; font-size: 14px; }
+        .msg-me { background: var(--primary); align-self: flex-start; }
+        .msg-other { background: #334155; align-self: flex-end; }
+        
+        /* Gift */
         .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
         .gift-item { background: rgba(255,255,255,0.05); padding: 8px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid transparent; font-size: 12px; }
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(16, 185, 129, 0.95); color: white; padding: 12px 20px; border-radius: 25px; z-index: 3000; transition: 0.4s; display: flex; align-items: center; gap: 10px; }
-        .toast.show { transform: translateX(-50%) translateY(0); }
+        .gift-item:hover { border-color: var(--gold); background: rgba(251, 191, 36, 0.15); }
+        
+        /* Friend List */
+        .friend-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 12px; cursor: pointer; }
+        
+        /* Reels */
+        .reel-item { height: calc(100vh - 75px); background: black; position: relative; scroll-snap-align: start; display: flex; justify-content: center; }
+        .reel-actions { position: absolute; right: 10px; bottom: 100px; display: flex; flex-direction: column; gap: 20px; pointer-events: auto; }
+        .reel-comments-sheet { position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: #1e293b; border-radius: 20px 20px 0 0; z-index: 20; display: none; flex-direction: column; animation: slideUp 0.3s; }
+        @keyframes slideUp { from{transform:translateY(100%)}to{transform:translateY(0)} }
     </style>
 </head>
 <body>
 
+    <!-- Sounds -->
     <audio id="snd-start" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
     <audio id="snd-msg" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
     <audio id="snd-coin" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
     <audio id="snd-ticker" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
     <audio id="snd-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <audio id="snd-spin" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
     <audio id="snd-win" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="snd-lose" src="https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3"></audio>
 
     <div id="gift-ticker" class="floating-ticker"><div class="ticker-content" id="ticker-text"></div></div>
     <div id="floating-b" class="floating-b" onclick="claimBonus()">B</div>
-    <div id="toast" class="toast"><i class="fas fa-bell"></i> <span id="toast-msg"></span></div>
+    <div id="toast" class="toast" style="background:rgba(52, 211, 153, 0.9); display:none"><i class="fas fa-bell"></i> <span id="toast-msg"></span></div>
     <div class="loader-overlay" id="loader"><div class="spinner"></div><p style="margin-top:15px; color:white">جاري التحميل...</p></div>
 
     <!-- Auth -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box" style="text-align: center;">
-            <h1 style="font-size:35px; color:var(--primary); margin-bottom:10px">Blogane</h1>
+            <h1 style="font-size:38px; background: linear-gradient(to right, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; margin-bottom: 10px;">Blogane</h1>
             <div id="reg-fields" style="display:none"><input id="reg-name" class="input-box" placeholder="الاسم" style="margin-bottom:10px"></div>
             <input id="email" class="input-box" placeholder="البريد الإلكتروني" style="margin-bottom:10px">
             <input id="pass" type="password" class="input-box" placeholder="كلمة المرور" style="margin-bottom:15px">
@@ -109,12 +111,17 @@
     </div>
 
     <!-- Modals -->
-    <div id="gift-modal" class="modal-overlay" style="display: none;"><div class="modal-box"><h3 style="text-align:center;color:var(--gold)">الهدايا 🎁</h3><div class="gift-grid" id="gift-grid-content"></div><button class="btn" style="width:100%;margin-top:10px;background:#333" onclick="document.getElementById('gift-modal').style.display='none'">إلغاء</button></div></div>
+    <div id="gift-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-box">
+            <h3 style="text-align:center; color:var(--gold)">الهدايا 🎁</h3><p style="text-align:center;font-size:12px">رصيدك: <span id="gift-balance">0</span></p>
+            <div class="gift-grid" id="gift-grid-content"></div><button class="btn" style="width:100%;margin-top:10px;background:#333" onclick="document.getElementById('gift-modal').style.display='none'">إلغاء</button>
+        </div>
+    </div>
     <div class="modal-overlay" id="generic-modal"><div class="modal-box" id="modal-content"></div></div>
 
     <!-- HOME -->
     <div id="view-home" class="view active">
-        <div class="header"><div class="coins-badge"><i class="fas fa-coins"></i> <span id="user-coins">0</span></div><img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)"></div>
+        <div class="header"><div style="color:var(--gold); font-weight:bold"><i class="fas fa-coins"></i> <span id="user-coins">0</span></div><img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)"></div>
         <div id="ctx-banner" style="display:none; padding:15px; background:linear-gradient(to right, var(--primary), var(--accent)); text-align:center;"><h3 id="ctx-title" style="color:white;"></h3><div style="display:flex; gap:10px; justify-content:center; margin-top:10px"><button id="ctx-del" class="btn" style="background:#ef4444; font-size:12px; display:none" onclick="deleteContext()">حذف</button><button class="btn" style="background:rgba(0,0,0,0.3); font-size:12px" onclick="leaveContext()">خروج</button></div></div>
         <div style="padding: 15px;">
             <div class="card">
@@ -125,20 +132,15 @@
         </div>
     </div>
 
-    <!-- PEOPLE (Friends & Search) - NEW -->
+    <!-- PEOPLE (New Tab for Friends/Search) -->
     <div id="view-people" class="view">
         <div class="header"><h2>أشخاص</h2></div>
         <div style="padding: 15px;">
             <input class="input-box" placeholder="بحث عن صديق..." oninput="socket.emit('search_users', this.value)">
-            <div id="search-results"></div>
-            
-            <div class="card" style="margin-top:20px">
-                <h4 style="margin-bottom:10px; color:var(--accent)">طلبات الصداقة <span id="req-badge-count" style="background:var(--primary); padding:2px 6px; border-radius:5px; font-size:11px">0</span></h4>
-                <div id="req-list"></div>
-            </div>
-
-            <h4 style="color:var(--gray); margin:20px 0 10px">قائمة الأصدقاء</h4>
-            <div id="friends-list-view"></div>
+            <div id="search-results" style="margin-bottom:15px"></div>
+            <div class="card"><h4 style="margin-bottom:10px; color:var(--accent)">طلبات الصداقة <span id="req-badge-count" style="background:var(--primary); padding:2px 6px; border-radius:5px; font-size:11px">0</span></h4><div id="req-list"></div></div>
+            <h4 style="color:var(--gray); margin:20px 0 10px">آخر المحادثات</h4>
+            <div id="recent-chats-list"></div>
         </div>
     </div>
 
@@ -158,7 +160,15 @@
         <div style="display:flex; flex-direction:column; align-items:center; margin-top:30px">
             <div class="wheel-container">
                 <div class="wheel-arrow"></div>
-                <div class="visual-wheel" id="wheel-el"></div>
+                <div class="wheel" id="roulette-wheel">
+                    <!-- Rotated Segments for Visuals -->
+                    <div class="segment-text" style="transform:rotate(30deg)">💰50</div>
+                    <div class="segment-text" style="transform:rotate(90deg)">💩0</div>
+                    <div class="segment-text" style="transform:rotate(150deg)">💰20</div>
+                    <div class="segment-text" style="transform:rotate(210deg)">💰100</div>
+                    <div class="segment-text" style="transform:rotate(270deg)">💩0</div>
+                    <div class="segment-text" style="transform:rotate(330deg)">💰10</div>
+                </div>
                 <button class="spin-btn" onclick="spinWheel()">Spin</button>
             </div>
             <h3 style="margin-top:20px; color:var(--gold)" id="game-result">جرب حظك!</h3>
@@ -173,17 +183,15 @@
         <div class="header"><h2>الدردشة</h2></div>
         <div class="chat-tabs"><button class="btn" style="flex:1;background:#333" onclick="switchChat('global')">عامة</button><button class="btn" style="flex:1;background:#333" onclick="switchChat('private')">خاص</button><button class="btn" style="flex:1;background:#333" onclick="switchChat('ai')">AI</button></div>
         <div id="chat-global" style="height:calc(100% - 130px); display:flex; flex-direction:column"><div id="g-msgs" style="flex:1; overflow-y:auto; padding:10px"></div><div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="g-input" class="input-box" style="margin:0" placeholder="اكتب..."><button class="btn" onclick="sendGlobal()">➤</button></div></div>
-        
         <div id="chat-private" style="height:calc(100% - 130px); display:none; flex-direction:column">
-            <!-- Private Chat List is now in "People" tab, here we show active conversation -->
-            <div id="priv-empty" style="flex:1; display:flex; justify-content:center; align-items:center; color:var(--gray)">اذهب لتبويب "أشخاص" واختر صديقاً للمحادثة</div>
+            <!-- Private is now just the active conversation, list is in 'People' -->
+            <div id="priv-empty" style="flex:1; display:flex; justify-content:center; align-items:center; color:var(--gray); text-align:center; padding:20px">اذهب إلى خانة "أشخاص" لاختيار صديق للمحادثة</div>
             <div id="priv-conv" style="display:none; height:100%; flex-direction:column">
                 <div style="padding:10px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.3); align-items:center"><button class="btn" onclick="closePriv()">خروج</button> <b id="p-name-header"></b> <button class="btn" style="background:var(--gold);color:black" onclick="showGifts()">🎁</button></div>
                 <div id="p-msgs" style="flex:1; overflow-y:auto; padding:10px"></div>
                 <div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="p-input" class="input-box" style="margin:0" placeholder="خاص..."><button class="btn" onclick="sendPriv()">➤</button></div>
             </div>
         </div>
-        
         <div id="chat-ai" style="height:calc(100% - 130px); display:none; flex-direction:column"><div id="ai-msgs" style="flex:1; overflow-y:auto; padding:10px"></div><div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="ai-input" class="input-box" style="margin:0" placeholder="اسأل AI..."><button class="btn" onclick="sendAi()">➤</button></div></div>
     </div>
 
@@ -193,42 +201,24 @@
     <nav class="bottom-nav">
         <div class="nav-item active" onclick="navTo('home', this)"><i class="fas fa-home"></i></div>
         <div class="nav-item" onclick="navTo('explore', this)"><i class="fas fa-compass"></i></div>
-        <div class="nav-item" onclick="navTo('people', this)"><i class="fas fa-user-friends"></i><div class="badge" id="nav-req-badge">0</div></div>
         <div class="nav-item" onclick="navTo('reels', this)"><i class="fas fa-play-circle" style="color:var(--accent)"></i></div>
+        <div class="nav-item" onclick="navTo('people', this)"><i class="fas fa-user-friends"></i><div class="badge" id="nav-req-badge">0</div></div>
         <div class="nav-item" onclick="navTo('chat', this)"><i class="fas fa-comments"></i><div class="badge" id="nav-msg-badge">!</div></div>
         <div class="nav-item" onclick="openProfile(currentUser.email, this)"><i class="fas fa-user"></i></div>
     </nav>
 
     <script>
         const socket = io();
-        let currentUser = null, currentPriv = null, currentContext='general', currentContextId=null;
-        
-        // 100 Gifts
-        const emojis = ["🌹","❤️","🔥","🎁","💎","👑","🏆","🥇","🏎️","✈️","🏰","🦁","🐯","🦄","🐉","🪐","🚀","🎸","🎹","🎺","🎻","🎤","🎧","🎨","🎬","🎭","🎪","🎢","🎡","🎠","🏖️","🏝️","🌋","🏔️","🏕️","⛺","🏠","🏡","🏢","🏣","🏤","🏥","🏦","🏨","🏩","🏪","🏫","🏬","🏭","🏯","🏰","💒","🗼","🗽","⛪","🕌","🛕","🕍","⛩️","🕋","⛲","⛺","🌁","🌃","🏙️","🌄","🌅","🌆","🌇","🌉","♨️","🎠","🎡","🎢","💈","circus","🚂","🚃","🚄","🚅","🚆","🚇","🚈","🚉","🚊","🚝","🚞","Tram","🚌","🚍","🚎","🚐","🚑","🚒","🚓","🚔","🚕","🚖","🚗","🚘","🚙","🚚","🚛","🚜"];
-        document.getElementById('gift-grid-content').innerHTML = emojis.map((e,i)=>`<div class="gift-item" onclick="sendGift('G${i+1}',${(i+1)*10},'${e}')"><span class="gift-emoji">${e}</span><br>${(i+1)*10}</div>`).join('');
+        let currentUser = null, currentContext = 'general', currentContextId = null, currentPriv = null, isReg = false;
 
-        // B Button
-        function updateB(){ const b=document.getElementById('floating-b'), l=localStorage.getItem('b_t')||0; if(Date.now()-l>600000) b.classList.remove('disabled'); else b.classList.add('disabled'); }
-        setInterval(updateB,1000);
-        function claimBonus(){ if(!document.getElementById('floating-b').classList.contains('disabled')){ localStorage.setItem('b_t',Date.now()); socket.emit('claim_bonus', currentUser.email); document.getElementById('snd-coin').play().catch(()=>{}); updateB(); } }
+        function notify(t, b) { const el=document.getElementById('toast'); document.getElementById('toast-msg').innerHTML=`<b>${t}</b><br>${b}`; el.style.display='flex'; el.classList.add('show'); document.getElementById('snd-msg').play().catch(()=>{}); setTimeout(()=>{el.classList.remove('show'); setTimeout(()=>el.style.display='none',300);}, 3000); }
 
-        // Roulette
-        let spinning=false;
-        function spinWheel(){
-            if(spinning)return; spinning=true;
-            const w=document.getElementById('wheel-el'), deg=3000+Math.random()*3000;
-            w.style.transform=`rotate(${deg}deg)`;
-            setTimeout(()=>{
-                spinning=false; const r=Math.floor(Math.random()*100);
-                if(r>20) { socket.emit('game_result',{email:currentUser.email,reward:r,game:'Wheel'}); document.getElementById('game-result').innerText=`ربحت ${r} كوينز!`; document.getElementById('snd-win').play().catch(()=>{}); }
-                else document.getElementById('game-result').innerText='حظ أوفر!';
-                w.style.transition='none'; w.style.transform=`rotate(${deg%360}deg)`; setTimeout(()=>w.style.transition='transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)',50);
-            },4000);
+        window.onload = () => { 
+            const s=localStorage.getItem('u'); 
+            if(s) socket.emit('login', JSON.parse(s)); 
+            else { hideLoader(); document.getElementById('auth-modal').style.display='flex'; }
+            updateB();
         }
-
-        // Logic
-        function notify(t,b){ const el=document.getElementById('toast'); document.getElementById('toast-msg').innerHTML=`<b>${t}</b><br>${b}`; el.classList.add('show'); document.getElementById('snd-msg').play().catch(()=>{}); setTimeout(()=>el.classList.remove('show'),3000); }
-        window.onload=()=>{ const s=localStorage.getItem('u'); if(s)socket.emit('login',JSON.parse(s)); else {document.getElementById('loader').style.display='none'; document.getElementById('auth-modal').style.display='flex';} updateB(); }
 
         function navTo(v, el) { 
             document.getElementById('snd-click').play().catch(()=>{});
@@ -237,15 +227,55 @@
             document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); 
             if(el) el.classList.add('active');
             if(v==='chat') document.getElementById('nav-msg-badge').style.display='none';
+            if(v==='profile' && currentUser) socket.emit('get_profile_info', currentUser.email);
         }
         
+        function showLoader(t){ document.getElementById('loader').style.display='flex'; }
+        function hideLoader(){ document.getElementById('loader').style.display='none'; }
+        function showModal(h){ document.getElementById('modal-content').innerHTML=h; document.getElementById('generic-modal').style.display='flex'; }
+        function closeModal(){ document.getElementById('generic-modal').style.display='none'; }
+
         // Auth
-        function auth(){ const e=document.getElementById('email').value, p=document.getElementById('pass').value; const n=document.getElementById('reg-name').value; if(document.getElementById('reg-fields').style.display!=='none') socket.emit('register',{name:n,email:e,password:p}); else socket.emit('login',{email:e,password:p}); }
-        function toggleAuth(){ const r=document.getElementById('reg-fields'); r.style.display=r.style.display==='none'?'block':'none'; }
-        socket.on('auth_success', (u)=>{ currentUser=u; localStorage.setItem('u',JSON.stringify({email:u.email,password:u.password})); document.getElementById('auth-modal').style.display='none'; document.getElementById('loader').style.display='none'; document.getElementById('snd-start').play().catch(()=>{}); updateMyUI(); });
+        function toggleAuth(){ isReg=!isReg; document.getElementById('reg-fields').style.display=isReg?'block':'none'; }
+        function auth(){ const e=document.getElementById('email').value, p=document.getElementById('pass').value; if(isReg) socket.emit('register', {name:document.getElementById('reg-name').value, email:e, password:p}); else socket.emit('login', {email:e, password:p}); }
+        socket.on('auth_success', (u)=>{ 
+            currentUser=u; localStorage.setItem('u', JSON.stringify({email:u.email, password:u.password})); 
+            document.getElementById('auth-modal').style.display='none'; hideLoader(); document.getElementById('snd-start').play().catch(()=>{}); updateMyUI(); 
+            navTo('home', document.querySelector('.nav-item'));
+            socket.emit('get_recent_chats', u.email); // Load chats
+        });
         function updateMyUI(){ document.getElementById('my-avatar').src=currentUser.avatar; document.getElementById('header-avatar').src=currentUser.avatar; document.getElementById('user-coins').innerText=currentUser.coins; }
 
-        // Chat System (FIXED)
+        // Roulette
+        let spinning = false;
+        function spinWheel() {
+            if(spinning) return; spinning = true;
+            document.getElementById('snd-spin').play().catch(()=>{});
+            const w = document.getElementById('roulette-wheel');
+            const deg = 3000 + Math.floor(Math.random() * 3000);
+            w.style.transform = `rotate(${deg}deg)`;
+            setTimeout(() => {
+                spinning = false;
+                const r = Math.floor(Math.random() * 100);
+                if(r > 30) {
+                    socket.emit('game_result', {email: currentUser.email, reward: 50, game: 'Wheel'});
+                    document.getElementById('snd-win').play().catch(()=>{});
+                    document.getElementById('game-result').innerText = 'مبروك! 50 كوينز';
+                } else {
+                    document.getElementById('snd-lose').play().catch(()=>{});
+                    document.getElementById('game-result').innerText = 'حظ أوفر!';
+                }
+                w.style.transition = 'none'; w.style.transform = `rotate(${deg%360}deg)`;
+                setTimeout(() => w.style.transition = 'transform 4s cubic-bezier(0.25, 0.1, 0.25, 1)', 50);
+            }, 4000);
+        }
+
+        // B Bonus
+        function updateB(){ const b=document.getElementById('floating-b'), l=localStorage.getItem('b_t')||0; if(Date.now()-l>600000) b.classList.remove('disabled'); else b.classList.add('disabled'); }
+        setInterval(updateB, 1000);
+        function claimBonus(){ if(!document.getElementById('floating-b').classList.contains('disabled')){ localStorage.setItem('b_t',Date.now()); socket.emit('claim_bonus', currentUser.email); document.getElementById('snd-coin').play().catch(()=>{}); updateB(); } }
+
+        // Chat System (Fixed)
         window.startChat = (e, n) => { 
             currentPriv=e; 
             navTo('chat'); 
@@ -259,8 +289,18 @@
         function switchChat(t) { ['global','private','ai'].forEach(x=>document.getElementById(`chat-${x}`).style.display=x===t?'flex':'none'); }
         function closePriv(){ document.getElementById('priv-conv').style.display='none'; document.getElementById('priv-empty').style.display='flex'; currentPriv=null; }
         function sendPriv(){ const t=document.getElementById('p-input').value; if(t){ socket.emit('send_private_msg',{from:currentUser.email, to:currentPriv, text:t}); document.getElementById('p-input').value=''; } }
-        socket.on('load_private_msgs', (ms)=>{ document.getElementById('p-msgs').innerHTML = ms.map(m=> { const me=m.from===currentUser.email; return `<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${m.isGift?m.icon+' '+m.text:m.text}</div></div>`; }).join(''); });
-        socket.on('receive_private_msg', (m)=>{ if(m.from===currentPriv || m.from===currentUser.email) { const me=m.from===currentUser.email; document.getElementById('p-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${m.isGift?m.icon+' '+m.text:m.text}</div></div>`; document.getElementById('p-msgs').scrollTop=document.getElementById('p-msgs').scrollHeight; document.getElementById('snd-msg').play().catch(()=>{}); } else { document.getElementById('nav-msg-badge').style.display='block'; notify('رسالة', 'رسالة جديدة'); } });
+        socket.on('load_private_msgs', (ms)=>{ document.getElementById('p-msgs').innerHTML = ms.map(m=> { const me=m.from===currentUser.email; const c=m.isGift?`<div style="text-align:center;background:#d97706;padding:10px;border-radius:10px">🎁 ${m.text}</div>`:m.text; return `<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${c}</div></div>`; }).join(''); });
+        socket.on('receive_private_msg', (m)=>{ 
+            if(m.from===currentPriv || m.from===currentUser.email) { 
+                const me=m.from===currentUser.email; const c=m.isGift?`<div style="text-align:center;background:#d97706;padding:10px;border-radius:10px">🎁 ${m.text}</div>`:m.text;
+                document.getElementById('p-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${c}</div></div>`; 
+                document.getElementById('p-msgs').scrollTop=document.getElementById('p-msgs').scrollHeight; 
+                if(!me) document.getElementById('snd-msg').play().catch(()=>{});
+            } else { document.getElementById('nav-msg-badge').style.display='block'; notify('رسالة', 'لديك رسالة خاصة'); }
+        });
+        socket.on('update_recent_chats', (users) => {
+            document.getElementById('recent-chats-list').innerHTML = users.map(u => `<div class="friend-item" onclick="startChat('${u.email}','${u.name}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join('');
+        });
 
         // Global & AI
         function sendGlobal(){ const t=document.getElementById('g-input').value; if(t){socket.emit('send_global_msg',{text:t,author:currentUser.name,email:currentUser.email,avatar:currentUser.avatar});document.getElementById('g-input').value='';} }
@@ -268,37 +308,63 @@
         function sendAi(){ const t=document.getElementById('ai-input').value; if(t){ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-me">${t}</div>`; socket.emit('send_ai_msg',t); document.getElementById('ai-input').value=''; } }
         socket.on('receive_ai_msg', (m)=>{ document.getElementById('ai-msgs').innerHTML+=`<div class="msg-bubble msg-other">${m.text}</div>`; });
 
-        // People & Friends
-        socket.on('search_results', (users) => { document.getElementById('search-results').innerHTML = users.map(u => `<div class="card" style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="openProfile('${u.email}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join(''); });
-        socket.on('update_requests', (reqs) => { document.getElementById('req-badge-count').innerText = reqs.length; document.getElementById('nav-req-badge').style.display = reqs.length?'block':'none'; document.getElementById('req-list').innerHTML = reqs.map(r => `<div class="card" style="padding:10px;display:flex;justify-content:space-between"><div style="display:flex;gap:10px"><img src="${r.avatar}" class="avatar">${r.name}</div><button class="btn" onclick="socket.emit('respond_friend_request',{userEmail:currentUser.email, requesterEmail:'${r.email}', accept:true})">قبول</button></div>`).join(''); });
-        socket.on('update_friends', (f) => { document.getElementById('friends-list-view').innerHTML = f.map(u => `<div class="card" style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="startChat('${u.email}','${u.name}')"><img src="${u.avatar}" class="avatar"><div><b>${u.name}</b><br><small style="color:${u.isOnline?'#10b981':'#aaa'}">${u.isOnline?'نشط':'غائب'}</small></div></div>`).join(''); });
+        // Posts (Fixed Clickable Header)
+        let postImg=null; document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result;}; r.readAsDataURL(f);} });
+        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ showLoader('نشر...'); socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:currentContext, contextId:currentContextId}); document.getElementById('post-txt').value=''; postImg=null; } }
+        socket.on('upload_complete', hideLoader);
+        function renderPost(p, t) {
+            const l = p.likes.includes(currentUser.email);
+            const html = `
+            <div class="card">
+                <div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author}</b><br><small style="color:var(--gray); font-size:11px">${new Date(p.date).toLocaleTimeString()}</small></div></div>
+                <p style="margin-top:10px; line-height:1.5">${p.content||''}</p>
+                ${p.media?`<img src="${p.media}" class="post-img">`:''}
+                <div class="actions">
+                    <div class="act-btn ${l?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})"><i class="${l?'fas':'far'} fa-heart"></i> <span id="l-${p.id}">${p.likes.length}</span></div>
+                    <div class="act-btn" onclick="toggleC(${p.id})"><i class="far fa-comment"></i> <span>${p.comments.length}</span></div>
+                </div>
+                <div class="comments-area" id="com-${p.id}">
+                    <div id="clist-${p.id}">${p.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble" onclick="openProfile('${c.userEmail}')"><b>${c.userName}</b><br>${c.text}</div></div>`).join('')}</div>
+                    <div style="display:flex; gap:5px; margin-top:10px"><input id="cin-${p.id}" class="input-box" style="padding:8px" placeholder="تعليق.."><button class="btn" style="padding:5px 10px" onclick="sendC(${p.id})">➤</button></div>
+                </div>
+            </div>`;
+            document.getElementById(t).insertAdjacentHTML('afterbegin', html);
+        }
+        window.toggleC=(id)=>{const e=document.getElementById(`com-${id}`); e.style.display=e.style.display==='block'?'none':'block';}
+        window.sendC=(id)=>{const t=document.getElementById(`cin-${id}`).value; if(t){socket.emit('add_comment',{postId:id, text:t, userEmail:currentUser.email, userName:currentUser.name, userAvatar:currentUser.avatar}); document.getElementById(`cin-${id}`).value='';}}
+        socket.on('update_comments', (d)=>{ document.getElementById(`clist-${d.postId}`).innerHTML = d.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" class="avatar" style="width:25px;height:25px"><div class="comment-bubble"><b>${c.userName}</b><br>${c.text}</div></div>`).join(''); });
+        socket.on('update_likes', (d)=>{ const e=document.getElementById(`l-${d.id}`); if(e)e.innerText=d.likes.length; });
+        socket.on('receive_post', (p)=>{ if(p.context===currentContext && p.contextId===currentContextId) renderPost(p,'feed'); });
+        socket.on('load_posts', (ps)=>{ document.getElementById('feed').innerHTML=''; ps.reverse().forEach(p=>renderPost(p,'feed')); });
 
-        // Posts & Profile (Standard)
-        window.openProfile = (e, el) => { if(el) navTo('profile', el); else navTo('profile'); socket.emit('get_profile_info', e); }
-        socket.on('open_profile_view', ({user, posts}) => {
+        // Gifts
+        const gifts = [{n:"وردة",i:"🌹",p:10}, {n:"قلب",i:"❤️",p:15}, {n:"سيارة",i:"🏎️",p:500}, {n:"طائرة",i:"✈️",p:1000}, {n:"أسد",i:"🦁",p:2000}];
+        document.getElementById('gift-grid-content').innerHTML = gifts.map(g => `<div class="gift-item" onclick="sendGift('${g.n}',${g.p},'${g.i}')"><span class="gift-emoji">${g.i}</span><br>${g.p}</div>`).join('');
+        socket.on('gift_broadcast', (d) => { const t=document.getElementById('gift-ticker'); document.getElementById('ticker-text').innerHTML=`<img src="${d.avatar}" style="width:20px;border-radius:50%"> ${d.from} أرسل ${d.gift}`; t.classList.add('show'); document.getElementById('snd-ticker').play().catch(()=>{}); setTimeout(()=>t.classList.remove('show'), 5000); });
+        function showGifts(){ document.getElementById('gift-balance').innerText=currentUser.coins; document.getElementById('gift-modal').style.display='flex'; }
+        function sendGift(n, c, i){ if(currentUser.coins<c){notify('خطأ','رصيدك لا يكفي');return;} socket.emit('send_gift',{from:currentUser.email, to:currentPriv, giftName:n, cost:c, icon:i}); document.getElementById('gift-modal').style.display='none'; }
+        socket.on('update_coins', (c)=>{ currentUser.coins=c; document.getElementById('user-coins').innerText=c; document.getElementById('snd-coin').play().catch(()=>{}); });
+
+        // Profile
+        window.openProfile = (e, el) => { if(el) navTo('profile', el); else navTo('profile'); showLoader('جاري التحميل...'); socket.emit('get_profile_info', e); }
+        socket.on('open_profile_view', ({user, posts, friends}) => {
+            hideLoader();
             document.getElementById('profile-content').innerHTML = `
                 <div class="profile-cover"><img src="${user.avatar}" class="profile-pic-lg"></div>
                 <div style="text-align:center;padding-top:60px"><h2>${user.name}</h2><p style="color:var(--gray)">${user.bio||''}</p>
                 <div style="margin-top:15px">${user.email===currentUser.email ? `<button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showEditProfile()">تعديل</button>` : `<button class="btn" onclick="socket.emit('send_friend_request', {from:currentUser.email, to:'${user.email}'}); alert('تم الإرسال')">صداقة</button> <button class="btn" style="background:var(--accent)" onclick="startChat('${user.email}','${user.name}')">مراسلة</button>`}</div></div>
-                <div style="padding:15px">${posts.map(p=>`<div class="card"><p>${p.content||'صورة'}</p></div>`).join('')}</div>`;
+                <div style="padding:15px"><h4 style="color:var(--accent)">الأصدقاء</h4><div style="display:flex;flex-wrap:wrap">${friends?friends.map(f=>`<div class="friend-chip" onclick="openProfile('${f.email}')"><img src="${f.avatar}" style="width:20px;height:20px;border-radius:50%">${f.name}</div>`).join(''):'<span style="font-size:12px;color:gray">لا يوجد</span>'}</div><h3 style="margin-top:15px;color:var(--primary);border-bottom:var(--border)">المنشورات</h3>${posts.map(p=>`<div class="card"><p>${p.content||'صورة'}</p></div>`).join('')}</div>`;
+            navTo('profile');
         });
         function showEditProfile(){ showModal(`<h3>تعديل</h3><input id="e-n" class="input-box" value="${currentUser.name}"><button class="btn" onclick="saveP()">حفظ</button><button class="btn" style="background:none" onclick="closeModal()">إلغاء</button>`); }
-        function saveP(){ socket.emit('update_profile', {email:currentUser.email, name:document.getElementById('e-n').value}); closeModal(); }
+        function saveP(){ socket.emit('update_profile', {email:currentUser.email, name:document.getElementById('e-n').value}); closeModal(); notify('تم','تم التحديث'); }
         socket.on('profile_updated_success', (u)=>{ currentUser=u; updateMyUI(); openProfile(u.email); });
-        let postImg=null; document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result;}; r.readAsDataURL(f);} });
-        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:currentContext, contextId:currentContextId}); document.getElementById('post-txt').value=''; postImg=null; } }
-        socket.on('receive_post', (p)=> { if(p.context===currentContext && p.contextId===currentContextId) { document.getElementById('feed').insertAdjacentHTML('afterbegin', `<div class="card"><div style="display:flex;gap:10px"><img src="${p.avatar}" class="avatar"><b>${p.author}</b></div><p>${p.content||''}</p>${p.media?`<img src="${p.media}" style="width:100%;border-radius:10px">`:''}</div>`); } });
-        socket.on('load_posts', (ps)=> { document.getElementById('feed').innerHTML=''; ps.reverse().forEach(p=>document.getElementById('feed').insertAdjacentHTML('afterbegin', `<div class="card"><div style="display:flex;gap:10px"><img src="${p.avatar}" class="avatar"><b>${p.author}</b></div><p>${p.content||''}</p>${p.media?`<img src="${p.media}" style="width:100%;border-radius:10px">`:''}</div>`)); });
-        
-        // Init
-        socket.on('gift_broadcast', (d) => { const t=document.getElementById('gift-ticker'); document.getElementById('ticker-text').innerHTML=`<img src="${d.avatar}" style="width:20px;border-radius:50%"> ${d.from} أرسل ${d.gift}`; t.classList.add('show'); document.getElementById('snd-ticker').play().catch(()=>{}); setTimeout(()=>t.classList.remove('show'),5000); });
-        function showGifts(){ document.getElementById('gift-balance').innerText=currentUser.coins; document.getElementById('gift-modal').style.display='flex'; }
-        function sendGift(n, c, i){ if(currentUser.coins<c){alert('رصيدك لا يكفي');return;} socket.emit('send_gift',{from:currentUser.email, to:currentPriv, giftName:n, cost:c, icon:i}); document.getElementById('gift-modal').style.display='none'; }
-        socket.on('update_coins', (c)=>{ currentUser.coins=c; document.getElementById('user-coins').innerText=c; document.getElementById('snd-coin').play().catch(()=>{}); });
-        function addFriend(){ socket.emit('send_friend_request', {from:currentUser.email, to:document.getElementById('friend-email').value}); document.getElementById('friend-email').value=''; alert('تم الإرسال'); }
-        function promptCreate(t){ const n=prompt('الاسم:'); if(n) t==='group'?socket.emit('create_group',{name:n,desc:'',owner:currentUser.email}):socket.emit('create_page',{name:n,owner:currentUser.email}); }
-        socket.on('update_groups', (gs) => { document.getElementById('groups-list').innerHTML = gs.map(g=>`<div class="card" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join(''); });
-        socket.on('update_pages', (ps) => { document.getElementById('pages-list').innerHTML = ps.map(p=>`<div class="card" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join(''); });
+
+        // Search & Friends (People Tab)
+        socket.on('search_results', (users) => { document.getElementById('search-results').innerHTML = users.map(u => `<div class="card" style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="openProfile('${u.email}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join(''); });
+        socket.on('update_requests', (reqs) => { document.getElementById('req-badge-count').innerText = reqs.length; document.getElementById('req-list').innerHTML = reqs.map(r => `<div class="card flex-between" style="padding:10px"><div style="display:flex;gap:10px"><img src="${r.avatar}" class="avatar" style="width:30px;height:30px">${r.name}</div><button class="btn" onclick="socket.emit('respond_friend_request',{userEmail:currentUser.email, requesterEmail:'${r.email}', accept:true})">قبول</button></div>`).join(''); });
+
+        // Context & Reels (Standard)
         function enterContext(t,i,n,o){ currentContext=t;currentContextId=i; navTo('home'); document.getElementById('ctx-banner').style.display='block'; document.getElementById('ctx-title').innerText=n; document.getElementById('feed').innerHTML=''; socket.emit('get_context_posts',{context:t,contextId:i}); document.getElementById('ctx-del').style.display=(currentUser.email===o?'inline-block':'none'); }
         function leaveContext(){ currentContext='general';currentContextId=null; document.getElementById('ctx-banner').style.display='none'; document.getElementById('feed').innerHTML=''; socket.emit('get_context_posts',{context:'general',contextId:null}); }
         function deleteContext(){ if(confirm('حذف؟')){ if(currentContext==='group')socket.emit('delete_group',{groupId:currentContextId,email:currentUser.email}); else socket.emit('delete_page',{pageId:currentContextId,email:currentUser.email}); } }
@@ -306,15 +372,22 @@
         socket.on('init_data', (d) => {
             document.getElementById('groups-list').innerHTML = d.groups.map(g=>`<div class="card" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join('');
             document.getElementById('pages-list').innerHTML = d.pages.map(p=>`<div class="card" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join('');
-            document.getElementById('req-badge-count').innerText = (d.friendRequests||[]).length;
-            d.globalMessages.forEach(m => { const me=m.email===currentUser.email; document.getElementById('g-msgs').innerHTML+=`<div style="display:flex;flex-direction:column;align-items:${me?'flex-start':'flex-end'}"><div class="msg-bubble ${me?'msg-me':'msg-other'}">${m.text}</div></div>`; });
-            d.reels.forEach(r => document.getElementById('reels-container').insertAdjacentHTML('beforeend', `<div class="reel-item" style="height:100%;display:flex;justify-content:center;background:black;border-bottom:1px solid #333;scroll-snap-align:start"><video src="${r.url}" controls style="width:100%"></video></div>`));
+            d.reels.forEach(r => renderReel(r));
+            d.globalMessages.forEach(m => renderGlobalMsg(m));
         });
+        function promptCreate(t){ const n=prompt('الاسم:'); if(n) t==='group'?socket.emit('create_group',{name:n,desc:'',owner:currentUser.email}):socket.emit('create_page',{name:n,owner:currentUser.email}); }
+        socket.on('update_groups', (gs) => { document.getElementById('groups-list').innerHTML = gs.map(g=>`<div class="card" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join(''); });
+        socket.on('update_pages', (ps) => { document.getElementById('pages-list').innerHTML = ps.map(p=>`<div class="card" onclick="enterContext('page','${p.id}','${p.name}','${p.owner}')"><b>${p.name}</b></div>`).join(''); });
         
-        // Reels (Simplified)
         function showReelModal(){ showModal(`<h3>نشر فيديو</h3><input type="file" id="r-f" class="input-box" accept="video/*"><input type="text" id="r-d" class="input-box" placeholder="وصف"><button class="btn" style="width:100%" onclick="uplR()">نشر</button><button class="btn" style="width:100%;background:none" onclick="closeModal()">إلغاء</button>`); }
-        async function uplR(){ const f=document.getElementById('r-f').files[0], d=document.getElementById('r-d').value; if(!f)return; document.getElementById('loader').style.display='flex'; socket.emit('upload_reel_start', {name:f.name}); const CHUNK=500*1024, total=Math.ceil(f.size/CHUNK); socket.once('upload_ready', async ({tempFileName}) => { for(let i=0; i<total; i++){ socket.emit('upload_reel_chunk', {fileName:tempFileName, data:await f.slice(i*CHUNK,(i+1)*CHUNK).arrayBuffer()}); } socket.emit('upload_reel_end', {fileName:tempFileName, desc:d, author:currentUser.name, avatar:currentUser.avatar, email:currentUser.email}); }); }
-        socket.on('receive_reel', (r)=>{ document.getElementById('reels-container').insertAdjacentHTML('afterbegin', `<div class="reel-item" style="height:100%;display:flex;justify-content:center;background:black;border-bottom:1px solid #333;scroll-snap-align:start"><video src="${r.url}" controls style="width:100%"></video></div>`); });
+        async function uplR(){ const f=document.getElementById('r-f').files[0], d=document.getElementById('r-d').value; if(!f)return; showLoader('جاري الرفع...'); socket.emit('upload_reel_start', {name:f.name}); const CHUNK=500*1024, total=Math.ceil(f.size/CHUNK); socket.once('upload_ready', async ({tempFileName}) => { for(let i=0; i<total; i++){ socket.emit('upload_reel_chunk', {fileName:tempFileName, data:await f.slice(i*CHUNK,(i+1)*CHUNK).arrayBuffer()}); } socket.emit('upload_reel_end', {fileName:tempFileName, desc:d, author:currentUser.name, avatar:currentUser.avatar, email:currentUser.email}); }); }
+        socket.on('receive_reel', (r)=>{ renderReel(r); });
+        function renderReel(r) {
+            const l = r.likes && r.likes.includes(currentUser.email);
+            const h = `<div class="reel-item"><video src="${r.url}" controls style="width:100%;height:100%;object-fit:contain"></video><div class="reel-actions"><div class="r-btn" onclick="socket.emit('toggle_like_reel',{id:${r.id},userEmail:currentUser.email})"><i class="${l?'fas':'far'} fa-heart" style="color:${l?'red':'white'}" id="rl-icon-${r.id}"></i> <span id="rl-count-${r.id}">${r.likes?r.likes.length:0}</span></div><div class="r-btn" onclick="openReelComments(${r.id})"><i class="fas fa-comment-dots"></i> <span id="rc-count-${r.id}">${r.comments?r.comments.length:0}</span></div></div></div>`;
+            document.getElementById('reels-container').insertAdjacentHTML('afterbegin', h);
+        }
+        window.openReelComments = (id) => document.getElementById(`rc-sheet-${id}`).style.display = 'flex';
     </script>
 </body>
-</html>
+            </html>

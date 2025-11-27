@@ -4,7 +4,8 @@
   "description": "Blogane Social Network",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "echo 'No build step required for this project'"
   },
   "dependencies": {
     "express": "^4.19.2",

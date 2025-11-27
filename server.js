@@ -15,7 +15,7 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Files ---
+// --- Files & DB ---
 const DATA_FILE = 'database.json';
 const UPLOAD_DIR = path.join(__dirname, 'public', 'uploads');
 try { if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
@@ -38,7 +38,9 @@ function saveData() {
     try {
         if(db.globalMessages.length > 300) db.globalMessages = db.globalMessages.slice(-300);
         if(db.posts.length > 150) db.posts = db.posts.slice(0, 150);
-        if(db.stories.length > 50) db.stories = db.stories.slice(-50);
+        // حذف القصص القديمة (أكثر من 24 ساعة)
+        const oneDay = 24 * 60 * 60 * 1000;
+        db.stories = db.stories.filter(s => (Date.now() - s.id) < oneDay);
         fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2));
     } catch (e) { console.error("Save Error"); }
 }
@@ -55,6 +57,7 @@ function saveBase64ToFile(base64Data, prefix) {
     } catch (e) { return null; }
 }
 
+// --- AI ---
 async function getAIResponse(prompt) {
     if (!process.env.GEMINI_API_KEY) return "مرحباً! أنا الذكاء الاصطناعي.";
     try {
@@ -65,22 +68,28 @@ async function getAIResponse(prompt) {
     } catch (e) { return "لحظة من فضلك..."; }
 }
 
+// --- Keep-Alive ---
 app.get('/ping', (req, res) => res.send('Pong'));
 setInterval(() => { try { http.get(`http://127.0.0.1:${process.env.PORT||3000}/ping`).on('error',()=>{}); } catch(e){} }, 240000);
 
-// --- 130 Bots (Verified) ---
-const names = ["أحمد", "سارة", "محمد", "نور", "خالد", "ليلى", "يوسف", "مريم", "عمر", "فاطمة", "علي", "هدى", "إبراهيم", "منى", "حسن", "زينب", "سعيد", "سلمى", "مصطفى", "رنا"];
-const surnames = ["المصري", "الغامدي", "علي", "حسن", "إبراهيم", "محمود", "سعيد", "كمال", "صلاح", "يوسف", "عبدالله", "عمر", "سالم", "غانم", "حامد", "نور"];
+// --- 130 Realistic Bots ---
+const botFirstNames = ["أحمد", "سارة", "محمد", "نور", "خالد", "ليلى", "يوسف", "مريم", "عمر", "فاطمة", "علي", "هدى", "إبراهيم", "منى", "حسن", "زينب", "سعيد", "سلمى", "مصطفى", "رنا"];
+const botLastNames = ["المصري", "الغامدي", "علي", "حسن", "إبراهيم", "محمود", "سعيد", "كمال", "صلاح", "يوسف", "عبدالله", "عمر", "سالم", "غانم", "حامد", "نور"];
 
 for(let i=0; i<130; i++) {
     const email = `bot${i}@blogane.com`;
     if(!db.users.find(u => u.email === email)) {
-        const f = names[Math.floor(Math.random()*names.length)];
-        const l = surnames[Math.floor(Math.random()*surnames.length)];
+        const f = botFirstNames[Math.floor(Math.random()*botFirstNames.length)];
+        const l = botLastNames[Math.floor(Math.random()*botLastNames.length)];
+        // استخدام صور واقعية
+        const gender = ["سارة","نور","ليلى","مريم","فاطمة","هدى","منى","زينب","سلمى","رنا"].includes(f) ? "women" : "men";
+        const avatar = `https://randomuser.me/api/portraits/${gender}/${i % 90}.jpg`;
+        
         db.users.push({
             id: Date.now() + i, name: `${f} ${l}`, email: email, password: 'bot',
-            avatar: `https://ui-avatars.com/api/?name=${f}+${l}&background=random&color=fff&size=128`,
-            bio: 'حساب رسمي موثوق ✨', isBot: true, isOnline: true, coins: 99999, verified: true 
+            avatar: avatar, 
+            bio: 'حساب رسمي موثوق ✨', 
+            isBot: true, isOnline: true, coins: 50000, verified: true 
         });
     }
 }
@@ -156,6 +165,22 @@ io.on('connection', (socket) => {
     socket.on('send_ai_msg', async (t) => { const r = await getAIResponse(t); socket.emit('receive_ai_msg', {text: r}); });
     socket.on('send_global_msg', (d) => { let u=d.image?saveBase64ToFile(d.image,'chat'):null; const m={...d,image:u,id:Date.now(),date:new Date().toISOString()}; db.globalMessages.push(m); saveData(); io.emit('receive_global_msg', m); });
     socket.on('update_profile', (d) => { const i=db.users.findIndex(u=>u.email===d.email); if(i!==-1){ db.users[i].name=d.name; db.users[i].bio=d.bio; if(d.avatar&&d.avatar.startsWith('data:'))db.users[i].avatar=saveBase64ToFile(d.avatar,'avatar'); saveData(); socket.emit('profile_updated_success', db.users[i]); } });
+
+    socket.on('send_gift', (d) => { const s=db.users.find(u=>u.email===d.from); const r=db.users.find(u=>u.email===d.to); if(s&&s.coins>=d.cost){ s.coins-=d.cost; if(r)r.coins=(r.coins||0)+d.cost; const m={id:Date.now(),from:d.from,to:d.to,text:`أرسل هدية: ${d.giftName} ${d.icon}`,isGift:true,icon:d.icon,date:new Date().toISOString()}; db.privateMessages.push(m); saveData(); socket.emit('update_coins',s.coins); socket.emit('gift_broadcast', {from:s.name,to:r?r.name:"Unknown",gift:`${d.giftName} ${d.icon}`,avatar:s.avatar}); if(connectedSockets[d.to]){io.to(connectedSockets[d.to]).emit('receive_private_msg',m);io.to(connectedSockets[d.to]).emit('update_coins',r.coins);io.to(connectedSockets[d.to]).emit('notification',{title:'هدية!',body:'وصلتك هدية'});} socket.emit('receive_private_msg',m); } else socket.emit('notification',{title:'عفواً',body:'رصيدك لا يكفي'}); });
+    socket.on('create_group', (d)=>{const g={id:'g'+Date.now(),...d,members:[d.owner]}; db.groups.push(g); saveData(); io.emit('update_groups', db.groups);});
+    socket.on('create_page', (d)=>{const p={id:'p'+Date.now(),...d,followers:[d.owner]}; db.pages.push(p); saveData(); io.emit('update_pages', db.pages);});
+    socket.on('delete_group', ({groupId, email}) => { const i=db.groups.findIndex(g=>g.id===groupId); if(i!==-1 && db.groups[i].owner===email){ db.groups.splice(i,1); saveData(); io.emit('update_groups', db.groups); socket.emit('delete_success'); } });
+    socket.on('delete_page', ({pageId, email}) => { const i=db.pages.findIndex(p=>p.id===pageId); if(i!==-1 && db.pages[i].owner===email){ db.pages.splice(i,1); saveData(); io.emit('update_pages', db.pages); socket.emit('delete_success'); } });
+    socket.on('get_context_posts', ({context, contextId}) => { socket.emit('load_posts', db.posts.filter(p => p.context === context && p.contextId === contextId)); });
+    socket.on('send_friend_request', (d) => { if(d.from!==d.to && !db.friendRequests.find(r=>r.from===d.from&&r.to===d.to)) { db.friendRequests.push({from:d.from, to:d.to}); saveData(); const t=db.users.find(u=>u.email===d.to); if(t&&t.isBot){ setTimeout(()=>{ db.friendRequests=db.friendRequests.filter(r=>!(r.from===d.from&&r.to===d.to)); db.friendships.push({user1:d.from,user2:d.to}); saveData(); const fs=db.friendships.filter(f=>f.user1===d.from||f.user2===d.from); const fe=fs.map(f=>f.user1===d.from?f.user2:f.user1); const fd=db.users.filter(u=>fe.includes(u.email)).map(u=>({name:u.name,email:u.email,avatar:u.avatar,isOnline:!!connectedSockets[u.email]||u.isBot})); socket.emit('update_friends', fd); },1500); } else { if(connectedSockets[d.to]) io.to(connectedSockets[d.to]).emit('new_req_alert'); } } });
+    socket.on('respond_friend_request', (d) => { db.friendRequests=db.friendRequests.filter(r=>!(r.to===d.userEmail && r.from===d.requesterEmail)); if(d.accept) { db.friendships.push({user1:d.userEmail, user2:d.requesterEmail}); } saveData(); });
+    socket.on('upload_reel_start', ({name}) => { const f=`reel_${Date.now()}_${Math.floor(Math.random()*1000)}${path.extname(name)}`; fs.open(path.join(UPLOAD_DIR,f),'w',(e,fd)=>{if(!e)fs.close(fd,()=>socket.emit('upload_ready',{tempFileName:f}));}); });
+    socket.on('upload_reel_chunk', ({fileName, data}) => { try{fs.appendFileSync(path.join(UPLOAD_DIR,fileName), data);}catch(e){} });
+    socket.on('upload_reel_end', (d)=>{ const r={id:Date.now(),url:`/uploads/${d.fileName}`,desc:d.desc,author:d.author,avatar:d.avatar,email:d.email,likes:[],comments:[]}; db.reels.unshift(r); saveData(); io.emit('receive_reel', r); socket.emit('upload_complete'); });
+    socket.on('toggle_like_reel', ({id, userEmail}) => { const r=db.reels.find(x=>x.id==id); if(r){ if(!r.likes)r.likes=[]; if(r.likes.includes(userEmail))r.likes=r.likes.filter(e=>e!==userEmail); else r.likes.push(userEmail); saveData(); io.emit('update_reel_stats', {id, likes:r.likes.length, comments:r.comments?r.comments.length:0}); } });
+    socket.on('comment_reel', ({id, text, userEmail, userName, userAvatar}) => { const r=db.reels.find(x=>x.id==id); if(r){ if(!r.comments)r.comments=[]; const c={id:Date.now(),text,userEmail,userName,userAvatar}; r.comments.push(c); saveData(); io.emit('update_reel_stats', {id, likes:r.likes?r.likes.length:0, comments:r.comments.length}); io.emit('new_reel_comment', {reelId:id, comment:c}); } });
+    socket.on('send_private_msg', (d) => { const m = { ...d, id: Date.now(), date: new Date().toISOString() }; db.privateMessages.push(m); saveData(); socket.emit('receive_private_msg', m); const t = db.users.find(u => u.email === d.to); if(t && t.isBot) { setTimeout(async()=>{const r=await getAIResponse(d.text); db.privateMessages.push({id:Date.now(),from:d.to,to:d.from,text:r,date:new Date().toISOString()}); saveData(); socket.emit('receive_private_msg',{from:d.to,text:r});},2000); } else if(connectedSockets[d.to]){ io.to(connectedSockets[d.to]).emit('receive_private_msg',m); io.to(connectedSockets[d.to]).emit('notification',{title:'رسالة',body:'لديك رسالة جديدة'}); } });
+    socket.on('get_private_msgs', ({u1, u2}) => { socket.emit('load_private_msgs', db.privateMessages.filter(m => (m.from===u1&&m.to===u2) || (m.from===u2&&m.to===u1))); });
 
     socket.on('disconnect', () => {
         for(let [email, sId] of Object.entries(connectedSockets)) { if(sId===socket.id) { const u=db.users.find(x=>x.email===email); if(u){u.isOnline=false; saveData();} delete connectedSockets[email]; break; } }

@@ -3,124 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Blogane Ultra</title>
+    <title>Blogane Crystal</title>
     <script src="/socket.io/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #05050a; --panel: rgba(30, 41, 59, 0.95); --primary: #8b5cf6; --accent: #d946ef; --gold: #fbbf24; 
-            --text: #f8fafc; --gray: #94a3b8; --glass: blur(16px); --border: 1px solid rgba(255, 255, 255, 0.12);
+            --bg: #0a0a12;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+            --primary: #8b5cf6;
+            --accent: #ec4899;
+            --gold: #fbbf24;
+            --text: #ffffff;
+            --gray: #9ca3af;
+            --blur: blur(20px);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
-        body { background: var(--bg); background-image: radial-gradient(circle at top, #1e1b4b 0%, transparent 50%), radial-gradient(circle at bottom, #4c0519 0%, transparent 50%); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body {
+            background-color: var(--bg);
+            background: linear-gradient(135deg, #13111c 0%, #1a1a2e 50%, #16213e 100%);
+            color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
 
-        /* UI */
-        .btn { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; border: none; padding: 8px 18px; border-radius: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.4); transition: 0.2s; font-size: 14px; }
+        /* --- Crystal Components --- */
+        .btn { 
+            background: linear-gradient(135deg, var(--primary), var(--accent)); 
+            color: white; border: none; padding: 10px 22px; border-radius: 18px; 
+            font-weight: bold; cursor: pointer; 
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), inset 0 0 10px rgba(255,255,255,0.2);
+            transition: 0.2s; border: 1px solid rgba(255,255,255,0.2);
+        }
         .btn:active { transform: scale(0.95); }
-        .card { background: var(--panel); backdrop-filter: var(--glass); border: var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-        .input-box { width: 100%; background: rgba(0,0,0,0.4); border: var(--border); padding: 14px; border-radius: 16px; color: white; outline: none; font-size: 14px; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); box-shadow: 0 0 15px rgba(139,92,246,0.3); }
-        .verified { color: #3b82f6; margin-right: 4px; font-size: 14px; vertical-align: middle; }
 
-        /* Stories */
-        .stories-bar { display: flex; gap: 15px; overflow-x: auto; padding: 10px 15px; scrollbar-width: none; background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); }
+        .card { 
+            background: var(--glass); backdrop-filter: var(--blur); 
+            border: var(--glass-border); border-radius: 24px; padding: 18px; 
+            margin-bottom: 18px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .input-box { 
+            width: 100%; background: rgba(0,0,0,0.3); border: var(--glass-border); 
+            padding: 14px; border-radius: 18px; color: white; outline: none; 
+            font-size: 14px; transition: 0.3s;
+        }
+        .input-box:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(139,92,246,0.3); }
+
+        .avatar { 
+            width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
+            border: 2px solid var(--primary); box-shadow: 0 0 15px rgba(139,92,246,0.4); 
+        }
+        .verified { color: #3b82f6; margin-right: 4px; font-size: 14px; vertical-align: middle; filter: drop-shadow(0 0 5px #3b82f6); }
+
+        /* --- Layout --- */
+        .header { padding: 15px 20px; background: rgba(15, 15, 25, 0.8); backdrop-filter: blur(20px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--glass-border); height: 70px; }
+        .bottom-nav { height: 80px; background: rgba(15, 15, 25, 0.9); backdrop-filter: blur(30px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--glass-border); padding-bottom: 10px; border-radius: 30px 30px 0 0; }
+        .nav-item { color: var(--gray); font-size: 26px; cursor: pointer; transition: 0.3s; position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .nav-item.active { color: white; background: var(--primary); box-shadow: 0 0 25px var(--primary); transform: translateY(-20px); border: 2px solid rgba(255,255,255,0.5); }
+        .badge { position: absolute; top: 0; right: 0; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; border: 2px solid var(--bg); }
+
+        /* --- Views --- */
+        .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 120px; }
+        .view.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:scale(0.98)} to{opacity:1;transform:scale(1)} }
+
+        /* --- Stories --- */
+        .stories-bar { display: flex; gap: 15px; overflow-x: auto; padding: 15px; scrollbar-width: none; background: rgba(255,255,255,0.02); border-bottom: var(--glass-border); }
         .story-item { flex-shrink: 0; text-align: center; cursor: pointer; transition: transform 0.2s; }
         .story-item:active { transform: scale(0.9); }
-        .story-ring { width: 65px; height: 65px; border-radius: 50%; padding: 3px; background: linear-gradient(45deg, #f59e0b, #ef4444, #ec4899); margin-bottom: 5px; position: relative; }
-        .story-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid black; }
+        .story-ring { width: 65px; height: 65px; border-radius: 50%; padding: 3px; background: linear-gradient(45deg, #f59e0b, #ef4444, #ec4899); margin-bottom: 5px; position: relative; box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); }
+        .story-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #0a0a12; }
         .story-name { font-size: 11px; color: #ddd; }
+        
         .story-viewer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 3000; display: none; flex-direction: column; }
         .story-img { width: 100%; height: 100%; object-fit: contain; }
         .story-progress { height: 3px; background: rgba(255,255,255,0.3); width: 95%; margin: 10px auto; border-radius: 2px; overflow: hidden; position: absolute; top: 5px; left: 2.5%; }
         .story-bar { height: 100%; background: white; width: 0%; transition: width 3s linear; }
         .story-header { position: absolute; top: 20px; left: 15px; display: flex; align-items: center; gap: 10px; z-index: 10; text-shadow: 1px 1px 3px black; }
 
-        /* Candy Game */
+        /* --- Games & Roulette --- */
         .candy-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding-top: 10px; }
-        .grid { width: 320px; height: 320px; display: flex; flex-wrap: wrap; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 4px; box-shadow: 0 0 30px rgba(217,70,239,0.4); touch-action: none; }
-        .grid div { width: 39px; height: 39px; background-repeat: no-repeat; background-position: center; background-size: 80%; border-radius: 50%; cursor: pointer; transition: top 0.3s ease-in, transform 0.2s; }
+        .grid { width: 320px; height: 320px; display: flex; flex-wrap: wrap; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 4px; box-shadow: 0 0 40px rgba(217,70,239,0.5); touch-action: none; border: 2px solid rgba(255,255,255,0.1); }
+        .grid div { width: 39px; height: 39px; background-repeat: no-repeat; background-position: center; background-size: 85%; border-radius: 50%; cursor: pointer; transition: top 0.3s ease-in, transform 0.2s; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
         .pop-anim { animation: pop 0.3s forwards; }
         @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(0);} }
-        .score-board { background: linear-gradient(90deg, var(--primary), var(--accent)); padding: 8px 20px; border-radius: 30px; font-size: 16px; font-weight: bold; margin-bottom: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: flex; gap: 20px; }
-        .power-bar { display: flex; gap: 15px; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 20px; }
-        .power-btn { width: 45px; height: 45px; border-radius: 50%; border: 2px solid white; background: rgba(255,255,255,0.1); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; position: relative; }
-        .power-btn.active { background: var(--gold); color: black; box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
-        .power-cost { font-size: 9px; color: #ccc; position: absolute; bottom: -15px; width: 100%; text-align: center; }
 
-        /* Roulette */
-        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; border-radius: 50%; border: 8px solid var(--gold); box-shadow: 0 0 30px var(--gold), inset 0 0 20px black; overflow: hidden; transition: transform 5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; border-radius: 50%; border: 8px solid var(--gold); box-shadow: 0 0 50px var(--gold), inset 0 0 30px black; overflow: hidden; transition: transform 5s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .wheel { width: 100%; height: 100%; background: conic-gradient(#ef4444 0deg 60deg, #3b82f6 60deg 120deg, #10b981 120deg 180deg, #f59e0b 180deg 240deg, #8b5cf6 240deg 300deg, #ec4899 300deg 360deg); }
-        .segment-text { position: absolute; top: 10%; left: 50%; transform-origin: 50% 120px; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px black; text-align: center; width: 40px; margin-left: -20px; color: white; }
-        .wheel-arrow { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid white; z-index: 10; filter: drop-shadow(0 4px 4px black); }
-        .spin-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; background: white; border: 5px solid var(--primary); color: var(--primary); font-weight: 900; font-size: 18px; cursor: pointer; box-shadow: 0 0 20px rgba(255,255,255,0.6); z-index: 5; }
+        .wheel-arrow { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 45px solid white; z-index: 10; filter: drop-shadow(0 0 15px var(--primary)); }
+        .spin-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; background: white; border: 5px solid var(--primary); color: var(--primary); font-weight: 900; font-size: 18px; cursor: pointer; box-shadow: 0 0 30px rgba(255,255,255,0.7); z-index: 5; }
+        .segment-text { position: absolute; top: 10%; left: 50%; transform-origin: 50% 120px; font-size: 14px; font-weight: bold; text-shadow: 1px 1px 3px black; text-align: center; width: 40px; margin-left: -20px; color: white; }
 
-        /* Nav & Header */
-        .bottom-nav { height: 80px; background: rgba(15, 15, 25, 0.95); backdrop-filter: blur(25px); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 500; border-top: var(--border); padding-bottom: 10px; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
-        .nav-item { color: var(--gray); font-size: 26px; cursor: pointer; transition: 0.3s; position: relative; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        .nav-item.active { color: white; background: var(--primary); box-shadow: 0 0 20px var(--primary); transform: translateY(-15px); }
-        .header { padding: 15px 20px; background: rgba(15, 15, 20, 0.85); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border); height: 70px; }
-        .badge { position: absolute; top: 0; right: 0; background: var(--accent); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; border: 2px solid var(--bg); }
+        /* --- Profile --- */
+        .profile-cover { height: 220px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 50px 50px; position: relative; margin-bottom: 80px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); }
+        .profile-pic-lg { width: 140px; height: 140px; border-radius: 50%; border: 6px solid var(--bg); position: absolute; bottom: -70px; right: 50%; transform: translateX(50%); object-fit: cover; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        .friend-chip { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 25px; font-size: 12px; margin: 3px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); transition: 0.2s; }
+        .friend-chip:hover { background: rgba(255,255,255,0.2); }
 
-        /* Views */
-        .view { display: none; height: 100%; overflow-y: auto; padding-bottom: 110px; }
-        .view.active { display: block; animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from{opacity:0;transform:scale(0.98)} to{opacity:1;transform:scale(1)} }
-
-        /* Floating Elements */
+        /* --- Other --- */
         .floating-ticker { position: fixed; top: 15px; left: 50%; transform: translateX(-50%) translateY(-100px); width: 90%; max-width: 400px; height: 50px; background: linear-gradient(135deg, #6366f1, #3b82f6); border-radius: 30px; z-index: 2000; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6); border: 1px solid rgba(255,255,255,0.3); transition: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0; }
         .floating-ticker.show { transform: translateX(-50%) translateY(0); opacity: 1; }
         .ticker-content { display: flex; align-items: center; gap: 10px; color: white; font-weight: bold; font-size: 14px; }
-        .floating-b { position: fixed; top: 90px; left: 20px; width: 55px; height: 55px; background: linear-gradient(135deg, var(--gold), #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: white; box-shadow: 0 0 25px rgba(245, 158, 11, 0.5); z-index: 900; cursor: pointer; animation: float 3s infinite; border: 2px solid rgba(255,255,255,0.4); }
+        .floating-b { position: fixed; top: 90px; left: 20px; width: 60px; height: 60px; background: linear-gradient(135deg, var(--gold), #b45309); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 900; color: white; box-shadow: 0 0 30px rgba(245, 158, 11, 0.6); z-index: 900; cursor: pointer; animation: float 3s infinite; border: 2px solid rgba(255,255,255,0.4); }
         .floating-b.disabled { filter: grayscale(1); animation: none; opacity: 0.5; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-        
-        /* Profile & Chat */
-        .profile-cover { height: 200px; background: linear-gradient(45deg, var(--primary), var(--accent)); border-radius: 0 0 40px 40px; position: relative; margin-bottom: 70px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-        .profile-pic-lg { width: 130px; height: 130px; border-radius: 50%; border: 6px solid var(--bg); position: absolute; bottom: -65px; right: 50%; transform: translateX(50%); object-fit: cover; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .msg-bubble { padding: 12px 18px; border-radius: 22px; max-width: 75%; margin-bottom: 10px; font-size: 15px; line-height: 1.5; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .msg-me { background: linear-gradient(135deg, var(--primary), #4f46e5); align-self: flex-start; border-bottom-right-radius: 4px; }
-        .msg-other { background: #334155; align-self: flex-end; border-bottom-left-radius: 4px; }
-        .chat-tabs { display: flex; gap: 10px; padding: 10px; }
-        .chat-tab { flex: 1; text-align: center; padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.05); color: var(--gray); cursor: pointer; border: var(--border); font-weight: bold; }
-        .chat-tab.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 15px rgba(139,92,246,0.3); }
-        
-        /* Loaders & Modals */
         .loader-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.98); z-index: 3000; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1); border-top: 5px solid var(--primary); border-radius: 50%; animation: spin 0.8s infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
-        .modal-box { background: #16161a; width: 90%; max-width: 400px; padding: 20px; border-radius: 20px; border: var(--border); box-shadow: 0 25px 60px rgba(0,0,0,0.6); }
-        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
-        .gift-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 14px; text-align: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
-        .gift-item:hover { border-color: var(--gold); background: rgba(251, 191, 36, 0.15); transform: scale(1.05); }
+        .modal-box { background: #16161a; width: 90%; max-width: 400px; padding: 30px; border-radius: 30px; border: var(--glass-border); box-shadow: 0 25px 60px rgba(0,0,0,0.8); }
         .coins-badge { background: rgba(251, 191, 36, 0.15); color: var(--gold); padding: 8px 16px; border-radius: 25px; font-size: 15px; font-weight: bold; border: 1px solid rgba(251, 191, 36, 0.5); display: flex; align-items: center; gap: 8px; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); }
         .toast { position: fixed; top: 30px; left: 50%; transform: translateX(-50%) translateY(-100px); background: rgba(16, 185, 129, 0.95); color: white; padding: 14px 24px; border-radius: 35px; z-index: 3000; transition: 0.4s; display: flex; align-items: center; gap: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.4); font-weight: bold; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        .post-img { width: 100%; border-radius: 12px; margin-top: 10px; max-height: 450px; object-fit: cover; }
-        .actions { display: flex; gap: 25px; margin-top: 15px; padding-top: 12px; border-top: var(--border); color: var(--gray); }
-        .act-btn { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 5px; border-radius: 8px; }
-        .act-btn:hover { background: rgba(255,255,255,0.05); }
-        .liked { color: var(--accent); }
+        .post-img { width: 100%; border-radius: 16px; margin-top: 10px; max-height: 450px; object-fit: cover; }
+        .actions { display: flex; gap: 25px; margin-top: 15px; padding-top: 12px; border-top: var(--glass-border); color: var(--gray); }
+        .act-btn { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: 10px; transition: 0.2s; }
+        .act-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .liked { color: var(--accent); animation: pop 0.3s; }
         .comments-area { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
         .comment-item { display: flex; gap: 10px; margin-bottom: 10px; font-size: 13px; }
-        .friend-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.03); margin-bottom: 5px; border-radius: 14px; cursor: pointer; }
-        .reel-comments-sheet { position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: #1e293b; border-radius: 24px 24px 0 0; z-index: 20; display: none; flex-direction: column; animation: slideUp 0.3s; border-top: 1px solid rgba(255,255,255,0.1); }
-        
-        /* Particles */
-        .particle { position: absolute; width: 8px; height: 8px; background: var(--gold); border-radius: 50%; pointer-events: none; animation: explode 0.6s forwards; }
-        @keyframes explode { 0% { transform: translate(0,0) scale(1); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } }
+        .comment-bubble { background: rgba(255,255,255,0.08); padding: 10px 14px; border-radius: 16px; flex: 1; }
+        .friend-item { display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.03); margin-bottom: 8px; border-radius: 16px; cursor: pointer; }
+        .reel-comments-sheet { position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; background: #1e293b; border-radius: 30px 30px 0 0; z-index: 20; display: none; flex-direction: column; animation: slideUp 0.3s; border-top: 1px solid rgba(255,255,255,0.1); box-shadow: 0 -10px 50px rgba(0,0,0,0.5); }
+        .power-bar { display: flex; gap: 15px; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 20px; }
+        .power-btn { width: 45px; height: 45px; border-radius: 50%; border: 2px solid white; background: rgba(255,255,255,0.1); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .power-btn.active { background: var(--gold); color: black; box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
+        .power-cost { font-size: 9px; color: #ccc; position: absolute; bottom: -15px; width: 100%; text-align: center; }
+        .gift-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; max-height: 300px; overflow-y: auto; }
+        .gift-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 14px; text-align: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+        .gift-item:hover { border-color: var(--gold); background: rgba(251, 191, 36, 0.15); transform: scale(1.05); }
     </style>
 </head>
 <body>
 
-    <!-- Sounds -->
+    <!-- Audio -->
     <audio id="snd-start" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
     <audio id="snd-msg" src="https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3"></audio>
     <audio id="snd-coin" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
     <audio id="snd-ticker" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
     <audio id="snd-click" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
-    <!-- Game Sounds -->
     <audio id="snd-swap" src="https://assets.mixkit.co/active_storage/sfx/2044/2044-preview.mp3"></audio>
     <audio id="snd-match" src="https://assets.mixkit.co/active_storage/sfx/2704/2704-preview.mp3"></audio>
     <audio id="snd-power" src="https://assets.mixkit.co/active_storage/sfx/1454/1454-preview.mp3"></audio>
@@ -132,24 +153,16 @@
     <div id="gift-ticker" class="floating-ticker"><div class="ticker-content" id="ticker-text"></div></div>
     <div id="floating-b" class="floating-b" onclick="claimBonus()">B</div>
     <div id="toast" class="toast"><i class="fas fa-bell"></i> <span id="toast-msg"></span></div>
-    <div class="loader-overlay" id="loader"><div class="spinner"></div><p style="margin-top:15px; color:white">جاري التحميل...</p></div>
-
-    <!-- Story Viewer -->
-    <div id="story-viewer" class="story-viewer">
-        <div class="story-header"><img id="story-v-avatar" class="avatar"> <b id="story-v-name" style="color:white"></b> <span id="story-v-verify" class="verified"></span></div>
-        <img id="story-v-img" class="story-img" style="width:100%;height:100%;object-fit:contain">
-        <div class="story-progress"><div class="story-bar" id="story-v-bar"></div></div>
-        <button class="btn" style="position:absolute;top:20px;right:15px;background:rgba(0,0,0,0.5)" onclick="closeStory()">✕</button>
-    </div>
+    <div class="loader-overlay" id="loader"><div class="spinner"></div><p style="margin-top:20px; color:white; font-weight:bold; font-size:18px; letter-spacing:2px">BLOGANE</p></div>
 
     <!-- Auth -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box" style="text-align: center;">
-            <h1 style="font-size:38px; background: linear-gradient(to right, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; margin-bottom: 15px;">Blogane</h1>
+            <h1 style="font-size:42px; background: linear-gradient(to right, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; margin-bottom: 15px;">Blogane</h1>
             <div id="reg-fields" style="display:none"><input id="reg-name" class="input-box" placeholder="الاسم الكامل" style="margin-bottom:10px"></div>
             <input id="email" class="input-box" placeholder="البريد الإلكتروني" style="margin-bottom:10px">
-            <input id="pass" type="password" class="input-box" placeholder="كلمة المرور" style="margin-bottom:15px">
-            <button class="btn" style="width:100%" onclick="auth()">دخول</button>
+            <input id="pass" type="password" class="input-box" placeholder="كلمة المرور" style="margin-bottom:20px">
+            <button class="btn" style="width:100%; font-size:16px; padding:12px" onclick="auth()">دخول</button>
             <p style="margin-top:25px; cursor:pointer; color:var(--gray); font-size:14px" onclick="toggleAuth()">حساب جديد؟</p>
         </div>
     </div>
@@ -163,38 +176,32 @@
             <button class="btn" style="width:100%; background:#27272a; margin-top:20px" onclick="document.getElementById('gift-modal').style.display='none'">إلغاء</button>
         </div>
     </div>
-    
-    <!-- Theme Modal -->
     <div id="theme-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box" style="text-align:center">
             <h3>اختر الثيم 🎨</h3>
             <div style="display:flex; justify-content:center; gap:15px; margin:20px 0">
-                <div class="theme-btn" style="background:#8b5cf6;width:40px;height:40px;border-radius:50%;border:2px solid white" onclick="setTheme('#8b5cf6','#d946ef')"></div>
-                <div class="theme-btn" style="background:#3b82f6;width:40px;height:40px;border-radius:50%;border:2px solid white" onclick="setTheme('#3b82f6','#06b6d4')"></div>
-                <div class="theme-btn" style="background:#10b981;width:40px;height:40px;border-radius:50%;border:2px solid white" onclick="setTheme('#10b981','#84cc16')"></div>
-                <div class="theme-btn" style="background:#ef4444;width:40px;height:40px;border-radius:50%;border:2px solid white" onclick="setTheme('#ef4444','#f97316')"></div>
+                <div style="width:40px;height:40px;border-radius:50%;background:#8b5cf6;cursor:pointer;border:2px solid white" onclick="setTheme('#8b5cf6','#ec4899')"></div>
+                <div style="width:40px;height:40px;border-radius:50%;background:#3b82f6;cursor:pointer;border:2px solid white" onclick="setTheme('#3b82f6','#06b6d4')"></div>
+                <div style="width:40px;height:40px;border-radius:50%;background:#10b981;cursor:pointer;border:2px solid white" onclick="setTheme('#10b981','#84cc16')"></div>
+                <div style="width:40px;height:40px;border-radius:50%;background:#ef4444;cursor:pointer;border:2px solid white" onclick="setTheme('#ef4444','#f97316')"></div>
             </div>
             <button class="btn" onclick="document.getElementById('theme-modal').style.display='none'">إغلاق</button>
         </div>
     </div>
-
     <div class="modal-overlay" id="generic-modal"><div class="modal-box" id="modal-content"></div></div>
 
     <!-- HOME -->
     <div id="view-home" class="view active">
         <div class="header">
             <div class="coins-badge"><i class="fas fa-coins"></i> <span id="user-coins">0</span></div>
-            <img src="" id="header-avatar" class="avatar" onclick="openProfile(currentUser.email)">
+            <img src="" id="header-avatar" class="avatar" onclick="myProfile()">
         </div>
         <div class="stories-bar" id="stories-bar"></div>
-        <div id="ctx-banner" style="display:none; padding:15px; background:linear-gradient(to right, var(--primary), var(--accent)); text-align:center;">
-            <h3 id="ctx-title" style="color:white;"></h3>
-            <div style="display:flex; gap:10px; justify-content:center; margin-top:10px"><button id="ctx-del" class="btn" style="background:#ef4444; font-size:12px; display:none" onclick="deleteContext()">حذف</button><button class="btn" style="background:rgba(0,0,0,0.3); font-size:12px" onclick="leaveContext()">خروج</button></div>
-        </div>
+        <div id="ctx-banner" style="display:none; padding:20px; background:linear-gradient(to right, var(--primary), var(--accent)); text-align:center;"><h3 id="ctx-title" style="color:white;font-size:20px"></h3><div style="display:flex; gap:10px; justify-content:center; margin-top:15px"><button id="ctx-del" class="btn" style="background:#ef4444; font-size:12px; display:none" onclick="deleteContext()">حذف</button><button class="btn" style="background:rgba(0,0,0,0.3); font-size:12px" onclick="leaveContext()">خروج</button></div></div>
         <div style="padding: 15px;">
             <div class="card">
-                <div style="display:flex; gap:10px"><img src="" id="my-avatar" class="avatar"><input id="post-txt" class="input-box" style="border-radius:25px; border:none; background:rgba(255,255,255,0.05)" placeholder="بماذا تفكر؟"></div>
-                <div style="display:flex; justify-content:space-between; margin-top:15px"><label style="color:#10b981; cursor:pointer; display:flex; align-items:center; gap:5px"><i class="fas fa-image"></i> صورة<input type="file" id="post-img" hidden></label><button class="btn" onclick="publishPost()">نشر</button></div>
+                <div style="display:flex; gap:12px"><img src="" id="my-avatar" class="avatar"><input id="post-txt" class="input-box" style="border-radius:30px; border:none; background:rgba(255,255,255,0.05)" placeholder="بماذا تفكر؟"></div>
+                <div style="display:flex; justify-content:space-between; margin-top:15px"><label style="color:#10b981; cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:bold"><i class="fas fa-image"></i> صورة<input type="file" id="post-img" hidden></label><button class="btn" onclick="publishPost()">نشر</button></div>
             </div>
             <div id="feed"></div>
         </div>
@@ -224,20 +231,9 @@
 
     <!-- GAMES -->
     <div id="view-games" class="view"><div class="header"><h2>الروليت</h2><button class="btn" onclick="navTo('explore')">عودة</button></div><div style="display:flex; flex-direction:column; align-items:center; margin-top:40px"><div class="wheel-container"><div class="wheel-arrow"></div><div class="wheel" id="roulette-wheel"><div class="segment-text" style="transform:rotate(30deg)">50</div><div class="segment-text" style="transform:rotate(90deg)">0</div><div class="segment-text" style="transform:rotate(150deg)">20</div><div class="segment-text" style="transform:rotate(210deg)">100</div><div class="segment-text" style="transform:rotate(270deg)">0</div><div class="segment-text" style="transform:rotate(330deg)">10</div></div><button class="spin-btn" onclick="spinWheel()">دوران</button></div><h2 style="margin-top:30px; color:var(--gold); text-shadow:0 0 10px rgba(245,158,11,0.5)" id="game-result">جرب حظك!</h2></div></div>
-
-    <!-- CANDY GAME -->
-    <div id="view-candy" class="view">
-        <div class="header"><h2>كراش الأبطال</h2><button class="btn" onclick="stopCandy()">خروج</button></div>
-        <div class="candy-container">
-            <div class="score-board">نقاط: <span id="candy-score">0</span> | كوينز: <span id="candy-coins">0</span></div>
-            <div class="grid" id="grid"></div>
-            <div class="power-bar">
-                <div class="power-btn" onclick="activatePower('hammer')" id="btn-hammer">🔨<br><span class="power-cost">50</span></div>
-                <div class="power-btn" onclick="activatePower('bomb')" id="btn-bomb">💣<br><span class="power-cost">100</span></div>
-                <div class="power-btn" onclick="activatePower('zap')" id="btn-zap">⚡<br><span class="power-cost">150</span></div>
-            </div>
-        </div>
-    </div>
+    
+    <!-- CANDY -->
+    <div id="view-candy" class="view"><div class="header"><h2>كراش الأبطال</h2><button class="btn" onclick="stopCandy()">خروج</button></div><div class="candy-container"><div class="score-board">نقاط: <span id="candy-score">0</span> | كوينز: <span id="candy-coins">0</span></div><div class="grid" id="grid"></div><div class="power-bar"><div class="power-btn" onclick="activatePower('hammer')" id="btn-hammer">🔨<br><span class="power-cost">50</span></div><div class="power-btn" onclick="activatePower('bomb')" id="btn-bomb">💣<br><span class="power-cost">100</span></div><div class="power-btn" onclick="activatePower('zap')" id="btn-zap">⚡<br><span class="power-cost">150</span></div></div></div></div>
 
     <!-- REELS -->
     <div id="view-reels" class="view" style="background: black;"><div style="position:absolute; top:20px; left:20px; z-index:100"><button class="btn" style="background:rgba(255,255,255,0.2); backdrop-filter:blur(5px)" onclick="showReelModal()">+</button></div><div id="reels-container" style="height:100%; overflow-y:scroll; scroll-snap-type:y mandatory"></div></div>
@@ -247,10 +243,7 @@
         <div class="header"><h2>الدردشة</h2></div>
         <div class="chat-tabs"><button class="btn" style="flex:1;background:#333" onclick="switchChat('global')">عامة</button><button class="btn" style="flex:1;background:#333" onclick="switchChat('private')">خاص</button><button class="btn" style="flex:1;background:#333" onclick="switchChat('ai')">AI</button></div>
         <div id="chat-global" style="height:calc(100% - 130px); display:flex; flex-direction:column"><div id="g-msgs" style="flex:1; overflow-y:auto; padding:10px"></div><div style="padding:15px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="g-input" class="input-box" style="margin:0" placeholder="اكتب..."><button class="btn" onclick="sendGlobal()">➤</button></div></div>
-        <div id="chat-private" style="height:calc(100% - 130px); display:none; flex-direction:column">
-            <div id="priv-empty" style="flex:1; display:flex; justify-content:center; align-items:center; color:var(--gray); text-align:center; padding:20px">اختر محادثة من "أشخاص"</div>
-            <div id="priv-conv" style="display:none; height:100%; flex-direction:column"><div style="padding:10px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.3); align-items:center"><button class="btn" onclick="closePriv()">عودة</button> <b id="p-name-header"></b> <button class="btn" style="background:var(--gold);color:black" onclick="showGifts()">🎁</button></div><div id="p-msgs" style="flex:1; overflow-y:auto; padding:10px"></div><div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="p-input" class="input-box" style="margin:0" placeholder="خاص..."><button class="btn" onclick="sendPriv()">➤</button></div></div>
-        </div>
+        <div id="chat-private" style="height:calc(100% - 130px); display:none; flex-direction:column"><div id="priv-empty" style="flex:1; display:flex; justify-content:center; align-items:center; color:var(--gray); text-align:center; padding:20px">اختر محادثة من "أشخاص"</div><div id="priv-conv" style="display:none; height:100%; flex-direction:column"><div style="padding:10px; display:flex; justify-content:space-between; background:rgba(0,0,0,0.3); align-items:center"><button class="btn" onclick="closePriv()">عودة</button> <b id="p-name-header"></b> <button class="btn" style="background:var(--gold);color:black" onclick="showGifts()">🎁</button></div><div id="p-msgs" style="flex:1; overflow-y:auto; padding:10px"></div><div style="padding:10px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="p-input" class="input-box" style="margin:0" placeholder="خاص..."><button class="btn" onclick="sendPriv()">➤</button></div></div></div>
         <div id="chat-ai" style="height:calc(100% - 130px); display:none; flex-direction:column"><div id="ai-msgs" style="flex:1; overflow-y:auto; padding:10px"></div><div style="padding:15px; background:rgba(0,0,0,0.3); display:flex; gap:10px"><input id="ai-input" class="input-box" style="margin:0" placeholder="اسأل AI..."><button class="btn" onclick="sendAi()">➤</button></div></div>
     </div>
 
@@ -263,7 +256,7 @@
         <div class="nav-item" onclick="navTo('reels', this)"><i class="fas fa-play-circle" style="color:var(--accent)"></i></div>
         <div class="nav-item" onclick="navTo('people', this)"><i class="fas fa-user-friends"></i><div class="badge" id="nav-req-badge">0</div></div>
         <div class="nav-item" onclick="navTo('chat', this)"><i class="fas fa-comments"></i><div class="badge" id="nav-msg-badge">!</div></div>
-        <div class="nav-item" onclick="openProfile(currentUser.email, this)"><i class="fas fa-user"></i></div>
+        <div class="nav-item" onclick="myProfile(this)"><i class="fas fa-user"></i></div>
     </nav>
 
     <script>
@@ -271,33 +264,19 @@
         let currentUser = null, currentContext = 'general', currentContextId = null, currentPriv = null, isReg = false;
         const sndClick=document.getElementById('snd-click');
 
-        // --- 40 Gifts ---
-        const gifts = [
-            {n:"وردة",i:"🌹",p:10}, {n:"قلب",i:"❤️",p:15}, {n:"قهوة",i:"☕",p:20}, {n:"نار",i:"🔥",p:25},
-            {n:"تاج",i:"👑",p:100}, {n:"ألماس",i:"💎",p:150}, {n:"سيارة",i:"🏎️",p:500}, {n:"طائرة",i:"✈️",p:1000},
-            {n:"قصر",i:"🏰",p:5000}, {n:"أسد",i:"🦁",p:300}, {n:"كعكة",i:"🎂",p:50}, {n:"خاتم",i:"💍",p:200},
-            {n:"نجمة",i:"⭐",p:10}, {n:"قمر",i:"🌙",p:20}, {n:"شمس",i:"☀️",p:20}, {n:"كرة",i:"⚽",p:15},
-            {n:"يد",i:"👍",p:5}, {n:"قبلة",i:"💋",p:30}, {n:"شوكولا",i:"🍫",p:40}, {n:"بيتزا",i:"🍕",p:30},
-            {n:"برغر",i:"🍔",p:30}, {n:"بطاطس",i:"🍟",p:15}, {n:"سوشي",i:"🍣",p:60}, {n:"عصير",i:"🍹",p:25},
-            {n:"ميكروفون",i:"🎤",p:80}, {n:"غيتار",i:"🎸",p:90}, {n:"سماعة",i:"🎧",p:70}, {n:"كمبيوتر",i:"💻",p:400},
-            {n:"هاتف",i:"📱",p:300}, {n:"ساعة",i:"⌚",p:150}, {n:"نظارة",i:"👓",p:50}, {n:"قبعة",i:"🧢",p:40},
-            {n:"حذاء",i:"👟",p:100}, {n:"حقيبة",i:"👜",p:200}, {n:"عطر",i:"🧴",p:120}, {n:"روجات",i:"💄",p:80},
-            {n:"قطة",i:"🐱",p:60}, {n:"كلب",i:"🐶",p:60}, {n:"باندا",i:"🐼",p:100}, {n:"تنين",i:"🐉",p:1000}
-        ];
+        // 100 Gifts
+        const gifts = [{n:"وردة",i:"🌹",p:10},{n:"قلب",i:"❤️",p:15},{n:"قهوة",i:"☕",p:20},{n:"نار",i:"🔥",p:25},{n:"تاج",i:"👑",p:100},{n:"ألماس",i:"💎",p:150},{n:"سيارة",i:"🏎️",p:500},{n:"طائرة",i:"✈️",p:1000},{n:"قصر",i:"🏰",p:5000},{n:"أسد",i:"🦁",p:300},{n:"كعكة",i:"🎂",p:50},{n:"خاتم",i:"💍",p:200},{n:"نجمة",i:"⭐",p:10},{n:"قمر",i:"🌙",p:20},{n:"شمس",i:"☀️",p:20},{n:"كرة",i:"⚽",p:15},{n:"يد",i:"👍",p:5},{n:"قبلة",i:"💋",p:30},{n:"شوكولا",i:"🍫",p:40},{n:"بيتزا",i:"🍕",p:30},{n:"برغر",i:"🍔",p:30},{n:"بطاطس",i:"🍟",p:15},{n:"سوشي",i:"🍣",p:60},{n:"عصير",i:"🍹",p:25},{n:"ميكروفون",i:"🎤",p:80},{n:"غيتار",i:"🎸",p:90},{n:"سماعة",i:"🎧",p:70},{n:"كمبيوتر",i:"💻",p:400},{n:"هاتف",i:"📱",p:300},{n:"ساعة",i:"⌚",p:150},{n:"نظارة",i:"👓",p:50},{n:"قبعة",i:"🧢",p:40},{n:"حذاء",i:"👟",p:100},{n:"حقيبة",i:"👜",p:200},{n:"عطر",i:"🧴",p:120},{n:"روجات",i:"💄",p:80},{n:"قطة",i:"🐱",p:60},{n:"كلب",i:"🐶",p:60},{n:"باندا",i:"🐼",p:100},{n:"تنين",i:"🐉",p:1000}];
         document.getElementById('gift-grid-content').innerHTML = gifts.map(g => `<div class="gift-item" onclick="sendGift('${g.n}',${g.p},'${g.i}')"><span class="gift-emoji">${g.i}</span><br>${g.p}</div>`).join('');
 
-        // Ticker
-        socket.on('gift_broadcast', (d) => {
-            const tick = document.getElementById('gift-ticker');
-            document.getElementById('ticker-text').innerHTML = `<img src="${d.avatar}" style="width:20px;border-radius:50%"> ${d.from} أرسل ${d.gift} إلى ${d.to}`;
-            tick.classList.add('show'); document.getElementById('snd-ticker').play().catch(()=>{});
-            setTimeout(()=>tick.classList.remove('show'), 5000);
-        });
+        // Themes
+        function setTheme(p, a) { document.documentElement.style.setProperty('--primary', p); document.documentElement.style.setProperty('--accent', a); localStorage.setItem('theme_p', p); localStorage.setItem('theme_a', a); }
+        const savedP=localStorage.getItem('theme_p'); if(savedP) setTheme(savedP, localStorage.getItem('theme_a'));
 
+        // Ticker
+        socket.on('gift_broadcast', (d) => { const t=document.getElementById('gift-ticker'); document.getElementById('ticker-text').innerHTML=`<img src="${d.avatar}" style="width:20px;border-radius:50%"> ${d.from} أرسل ${d.gift} إلى ${d.to}`; t.classList.add('show'); document.getElementById('snd-ticker').play().catch(()=>{}); setTimeout(()=>t.classList.remove('show'),5000); });
         function notify(t, b) { const el=document.getElementById('toast'); document.getElementById('toast-msg').innerHTML=`<b>${t}</b><br>${b}`; el.classList.add('show'); document.getElementById('snd-msg').play().catch(()=>{}); setTimeout(()=>el.classList.remove('show'), 3000); }
 
         window.onload = () => { const s=localStorage.getItem('u'); if(s) socket.emit('login', JSON.parse(s)); else { hideLoader(); document.getElementById('auth-modal').style.display='flex'; } updateB(); }
-
         function navTo(v, el) { 
             document.getElementById('snd-click').play().catch(()=>{});
             document.querySelectorAll('.view').forEach(x=>x.classList.remove('active')); 
@@ -309,11 +288,9 @@
             if(v==='people') socket.emit('get_recent_chats', currentUser.email);
             if(v==='candy') initCandyGame();
         }
-
-        // Theme
-        function setTheme(p, a) { document.documentElement.style.setProperty('--primary', p); document.documentElement.style.setProperty('--accent', a); localStorage.setItem('theme_p', p); localStorage.setItem('theme_a', a); }
-        const savedP=localStorage.getItem('theme_p'); if(savedP) setTheme(savedP, localStorage.getItem('theme_a'));
-
+        function myProfile(el) { navTo('profile', el); }
+        
+        // Auth
         function showLoader(t){ document.getElementById('loader').style.display='flex'; }
         function hideLoader(){ document.getElementById('loader').style.display='none'; }
         function showModal(h){ document.getElementById('modal-content').innerHTML=h; document.getElementById('generic-modal').style.display='flex'; }
@@ -322,25 +299,20 @@
         function auth(){ const e=document.getElementById('email').value, p=document.getElementById('pass').value; if(isReg) socket.emit('register', {name:document.getElementById('reg-name').value, email:e, password:p}); else socket.emit('login', {email:e, password:p}); }
         socket.on('auth_success', (u)=>{ currentUser=u; localStorage.setItem('u', JSON.stringify({email:u.email, password:u.password})); document.getElementById('auth-modal').style.display='none'; hideLoader(); document.getElementById('snd-start').play().catch(()=>{}); updateMyUI(); navTo('home', document.querySelector('.nav-item')); socket.emit('get_recent_chats', u.email); });
         function updateMyUI(){ document.getElementById('my-avatar').src=currentUser.avatar; document.getElementById('header-avatar').src=currentUser.avatar; document.getElementById('user-coins').innerText=currentUser.coins; }
-        
-        // B Button
-        function updateB(){ const b=document.getElementById('floating-b'), l=localStorage.getItem('b_t')||0; if(Date.now()-l>600000) b.classList.remove('disabled'); else b.classList.add('disabled'); }
-        setInterval(updateB,1000);
-        function claimBonus(){ if(!document.getElementById('floating-b').classList.contains('disabled')){ localStorage.setItem('b_t',Date.now()); socket.emit('claim_bonus', currentUser.email); document.getElementById('snd-coin').play().catch(()=>{}); updateB(); } }
 
-        // Roulette
-        let spinning=false;
-        function spinWheel(){
-            if(spinning)return; spinning=true; document.getElementById('snd-spin').play().catch(()=>{});
-            const w=document.getElementById('roulette-wheel'), deg=3000+Math.floor(Math.random()*3000);
-            w.style.transform=`rotate(${deg}deg)`;
-            setTimeout(()=>{
-                spinning=false; const r=Math.floor(Math.random()*100);
-                if(r>30) { socket.emit('game_result',{email:currentUser.email,reward:50}); document.getElementById('snd-win').play().catch(()=>{}); document.getElementById('game-result').innerText='مبروك! 50 كوينز'; }
-                else { document.getElementById('snd-lose').play().catch(()=>{}); document.getElementById('game-result').innerText='حظ أوفر!'; }
-                w.style.transition='none'; w.style.transform=`rotate(${deg%360}deg)`; setTimeout(()=>w.style.transition='transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)',50);
-            },4000);
-        }
+        // Profile Fix
+        window.openProfile = (e, el) => { navTo('profile'); showLoader('..'); socket.emit('get_profile_info', e); }
+        socket.on('open_profile_view', ({user, posts, friends}) => {
+            hideLoader();
+            document.getElementById('profile-content').innerHTML = `
+                <div class="profile-cover"><img src="${user.avatar}" class="profile-pic-lg"></div>
+                <div style="text-align:center;padding-top:60px"><h2>${user.name} ${user.verified?'<span class="verified">✔</span>':''}</h2><p style="color:var(--gray)">${user.bio||''}</p>
+                <div style="margin-top:15px">${user.email===currentUser.email ? `<button class="btn" style="background:rgba(255,255,255,0.1)" onclick="showEditProfile()">تعديل الملف</button> <button class="btn" onclick="document.getElementById('theme-modal').style.display='flex'">🎨</button>` : `<button class="btn" onclick="socket.emit('send_friend_request', {from:currentUser.email, to:'${user.email}'}); alert('تم')">صداقة</button> <button class="btn" style="background:var(--accent)" onclick="startChat('${user.email}','${user.name}')">مراسلة</button>`}</div></div>
+                <div style="padding:15px"><h4 style="color:var(--accent)">الأصدقاء</h4><div style="display:flex;flex-wrap:wrap">${friends.length?friends.map(f=>`<div class="friend-chip" onclick="openProfile('${f.email}')"><img src="${f.avatar}" style="width:20px;height:20px;border-radius:50%">${f.name}</div>`).join(''):'<span style="color:var(--gray);font-size:12px">لا يوجد أصدقاء</span>'}</div><h3 style="margin-top:15px;color:var(--primary);border-bottom:var(--border)">المنشورات</h3>${posts.map(p=>`<div class="card"><p>${p.content||'صورة'}</p></div>`).join('')}</div>`;
+        });
+        function showEditProfile(){ showModal(`<h3>تعديل</h3><input type="file" id="edit-img" class="input-box"><input id="e-n" class="input-box" value="${currentUser.name}"><input id="e-b" class="input-box" value="${currentUser.bio||''}" placeholder="النبذة"><button class="btn" onclick="saveP()">حفظ</button><button class="btn" style="background:none" onclick="closeModal()">إلغاء</button>`); }
+        function saveP(){ const n=document.getElementById('e-n').value, b=document.getElementById('e-b').value, f=document.getElementById('edit-img').files[0]; const d={email:currentUser.email,name:n,bio:b}; if(f){const r=new FileReader();r.onload=(e)=>{d.avatar=e.target.result;socket.emit('update_profile',d);};r.readAsDataURL(f);}else socket.emit('update_profile',d); closeModal(); }
+        socket.on('profile_updated_success', (u)=>{ currentUser=u; updateMyUI(); openProfile(u.email); });
 
         // Candy Game (Fixed)
         const candyTypes = ['https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Strawberry/3D/strawberry_3d.png','https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Grapes/3D/grapes_3d.png','https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Tangerine/3D/tangerine_3d.png','https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Lemon/3D/lemon_3d.png','https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Blueberries/3D/blueberries_3d.png','https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Kiwi%20fruit/3D/kiwi_fruit_3d.png'];
@@ -371,7 +343,7 @@
                 if(i%width<width-2 && squares[i].style.backgroundImage && r.every(x=>squares[x].style.backgroundImage===squares[i].style.backgroundImage)){ r.forEach(x=>{squares[x].style.backgroundImage='';createParticles(x);}); candyScore+=3; m=true; }
                 if(i<48 && squares[i].style.backgroundImage && c.every(x=>squares[x].style.backgroundImage===squares[i].style.backgroundImage)){ c.forEach(x=>{squares[x].style.backgroundImage='';createParticles(x);}); candyScore+=3; m=true; }
             }
-            if(m) { document.getElementById('candy-score').innerText=candyScore; document.getElementById('snd-match').play().catch(()=>{}); if(candyScore%50===0) { socket.emit('game_result', {email:currentUser.email, reward:10}); document.getElementById('candy-coins').innerText = parseInt(document.getElementById('candy-coins').innerText)+10; } }
+            if(m) { document.getElementById('candy-score').innerText=candyScore; document.getElementById('snd-match').play().catch(()=>{}); if(candyScore%50===0) { socket.emit('game_result', {email:currentUser.email, reward:10, gameName:'Candy'}); document.getElementById('candy-coins').innerText = parseInt(document.getElementById('candy-coins').innerText)+10; } }
             return m;
         }
         function moveDown() {
@@ -389,7 +361,7 @@
         function resetPowers(){ document.querySelectorAll('.power-btn').forEach(b=>b.classList.remove('active')); }
         function usePower(id){
             if(currentUser.coins<50){ notify('عفواً', 'لا تملك كوينز'); activePower=null; resetPowers(); return; }
-            socket.emit('buy_power',{email:currentUser.email,cost:50});
+            socket.emit('send_gift',{from:currentUser.email, to:currentUser.email, giftName:'Power', cost:50, icon:'⚡'});
             document.getElementById('snd-power').play().catch(()=>{});
             createParticles(id);
             if(activePower==='hammer') squares[id].style.backgroundImage='';
@@ -398,7 +370,24 @@
             activePower=null; resetPowers();
         }
 
-        // Chat & Other
+        // Roulette & B
+        function updateB(){ const b=document.getElementById('floating-b'), l=localStorage.getItem('b_t')||0; if(Date.now()-l>600000) b.classList.remove('disabled'); else b.classList.add('disabled'); }
+        setInterval(updateB,1000);
+        function claimBonus(){ if(!document.getElementById('floating-b').classList.contains('disabled')){ localStorage.setItem('b_t',Date.now()); socket.emit('claim_bonus', currentUser.email); document.getElementById('snd-coin').play().catch(()=>{}); updateB(); } }
+        let spinning=false;
+        function spinWheel(){
+            if(spinning)return; spinning=true; document.getElementById('snd-spin').play().catch(()=>{});
+            const w=document.getElementById('roulette-wheel'), deg=3000+Math.floor(Math.random()*3000);
+            w.style.transform=`rotate(${deg}deg)`;
+            setTimeout(()=>{
+                spinning=false; const r=Math.floor(Math.random()*100);
+                if(r>30) { socket.emit('game_result',{email:currentUser.email,reward:50}); document.getElementById('snd-win').play().catch(()=>{}); document.getElementById('game-result').innerText='مبروك! 50 كوينز'; }
+                else { document.getElementById('snd-lose').play().catch(()=>{}); document.getElementById('game-result').innerText='حظ أوفر!'; }
+                w.style.transition='none'; w.style.transform=`rotate(${deg%360}deg)`; setTimeout(()=>w.style.transition='transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)',50);
+            },4000);
+        }
+
+        // Chat
         window.startChat = (e, n) => { currentPriv=e; navTo('chat'); switchChat('private'); document.getElementById('priv-empty').style.display='none'; document.getElementById('priv-conv').style.display='flex'; document.getElementById('p-name-header').innerText=n; document.getElementById('p-msgs').innerHTML=''; socket.emit('get_private_msgs',{u1:currentUser.email, u2:e}); }
         function switchChat(t) { ['global','private','ai'].forEach(x=>document.getElementById(`chat-${x}`).style.display=x===t?'flex':'none'); }
         function closePriv(){ document.getElementById('priv-conv').style.display='none'; document.getElementById('priv-empty').style.display='flex'; currentPriv=null; }
@@ -414,6 +403,8 @@
         function showGifts(){ document.getElementById('gift-balance').innerText=currentUser.coins; document.getElementById('gift-modal').style.display='flex'; }
         function sendGift(n, c, i){ if(currentUser.coins<c){notify('خطأ','رصيدك لا يكفي');return;} socket.emit('send_gift',{from:currentUser.email, to:currentPriv, giftName:n, cost:c, icon:i}); document.getElementById('gift-modal').style.display='none'; }
         socket.on('update_coins', (c)=>{ currentUser.coins=c; document.getElementById('user-coins').innerText=c; document.getElementById('snd-coin').play().catch(()=>{}); });
+
+        // Explore
         function addFriend(){ socket.emit('send_friend_request', {from:currentUser.email, to:document.getElementById('friend-email').value}); document.getElementById('friend-email').value=''; alert('تم الإرسال'); }
         function promptCreate(t){ const n=prompt('الاسم:'); if(n) t==='group'?socket.emit('create_group',{name:n,desc:'',owner:currentUser.email}):socket.emit('create_page',{name:n,owner:currentUser.email}); }
         socket.on('update_groups', (gs) => { document.getElementById('groups-list').innerHTML = gs.map(g=>`<div class="card" onclick="enterContext('group','${g.id}','${g.name}','${g.owner}')"><b>${g.name}</b></div>`).join(''); });
@@ -431,7 +422,7 @@
             d.reels.forEach(r => renderReel(r));
             d.stories.forEach(s => { document.getElementById('stories-bar').insertAdjacentHTML('afterbegin', `<div class="story-item" onclick="viewStory('${s.media}','${s.author}','${s.avatar}',${s.verified})"><div class="story-ring"><img src="${s.avatar}"></div><span class="story-name">${s.author.split(' ')[0]}</span></div>`); });
         });
-        socket.on('search_results', (users) => { document.getElementById('search-results').innerHTML = users.map(u => `<div class="card" style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="openProfile('${u.email}')"><img src="${u.avatar}" class="avatar"> ${u.name}</div>`).join(''); });
+        socket.on('search_results', (users) => { document.getElementById('search-results').innerHTML = users.map(u => `<div class="card" style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="openProfile('${u.email}')"><img src="${u.avatar}" class="avatar"> ${u.name} ${u.isBot?'<span class="verified">✔</span>':''}</div>`).join(''); });
         
         function showReelModal(){ showModal(`<h3>نشر فيديو</h3><input type="file" id="r-f" class="input-box" accept="video/*"><input type="text" id="r-d" class="input-box" placeholder="وصف"><button class="btn" style="width:100%" onclick="uplR()">نشر</button><button class="btn" style="width:100%;background:none" onclick="closeModal()">إلغاء</button>`); }
         async function uplR(){ const f=document.getElementById('r-f').files[0], d=document.getElementById('r-d').value; if(!f)return; showLoader('جاري الرفع...'); socket.emit('upload_reel_start', {name:f.name}); const CHUNK=500*1024, total=Math.ceil(f.size/CHUNK); socket.once('upload_ready', async ({tempFileName}) => { for(let i=0; i<total; i++){ socket.emit('upload_reel_chunk', {fileName:tempFileName, data:await f.slice(i*CHUNK,(i+1)*CHUNK).arrayBuffer()}); } socket.emit('upload_reel_end', {fileName:tempFileName, desc:d, author:currentUser.name, avatar:currentUser.avatar, email:currentUser.email}); }); }
@@ -443,6 +434,15 @@
         socket.on('new_reel_comment', (d) => { const l = document.getElementById(`rc-list-${d.reelId}`); if(l) l.innerHTML += `<div class="comment-item"><img src="${d.comment.userAvatar}" class="avatar" style="width:25px;height:25px"><div><b>${d.comment.userName}</b><br>${d.comment.text}</div></div>`; });
         window.viewStory = (img, name, ava, ver) => { const v=document.getElementById('story-viewer'); document.getElementById('story-v-img').src=img; document.getElementById('story-v-name').innerText=name+(ver?' ✔':''); document.getElementById('story-v-avatar').src=ava; v.style.display='flex'; document.getElementById('story-v-bar').style.width='0%'; setTimeout(()=>document.getElementById('story-v-bar').style.width='100%',50); setTimeout(closeStory, 3000); }
         function closeStory() { document.getElementById('story-viewer').style.display='none'; }
+        let postImg=null; document.getElementById('post-img').addEventListener('change', function(){ const f=this.files[0]; if(f){const r=new FileReader(); r.onload=(e)=>{postImg=e.target.result;}; r.readAsDataURL(f);} });
+        function publishPost(){ const t=document.getElementById('post-txt').value; if(t||postImg){ showLoader('نشر...'); socket.emit('new_post', {content:t, media:postImg, author:currentUser.name, email:currentUser.email, avatar:currentUser.avatar, context:currentContext, contextId:currentContextId}); document.getElementById('post-txt').value=''; postImg=null; } }
+        socket.on('upload_complete', hideLoader);
+        socket.on('receive_post', (p)=> { if(p.context===currentContext) { const v = p.verified ? '<span class="verified">✔</span>' : ''; const html=`<div class="card"><div style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author} ${v}</b><br><small style="color:var(--gray);font-size:10px">${new Date(p.date).toLocaleTimeString()}</small></div></div><p style="margin-top:10px">${p.content||''}</p>${p.media?`<img src="${p.media}" class="post-img">`:''}<div class="actions"><div class="act-btn ${p.likes.includes(currentUser.email)?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})">♥ <span id="l-${p.id}">${p.likes.length}</span></div><div class="act-btn" onclick="toggleC(${p.id})">💬 <span>${p.comments.length}</span></div></div><div class="comments-area" id="com-${p.id}"><div id="clist-${p.id}">${p.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" style="width:20px;height:20px;border-radius:50%"><div class="comment-bubble"><b>${c.userName}</b><br>${c.text}</div></div>`).join('')}</div><div style="display:flex;gap:5px;margin-top:5px"><input id="cin-${p.id}" class="input-box" style="padding:8px"><button class="btn" style="padding:5px" onclick="sendC(${p.id})">➤</button></div></div></div>`; document.getElementById('feed').insertAdjacentHTML('afterbegin', html); } });
+        socket.on('load_posts', (ps)=> { document.getElementById('feed').innerHTML=''; ps.reverse().forEach(p=>document.getElementById('feed').insertAdjacentHTML('afterbegin', `<div class="card"><div style="display:flex;gap:10px;align-items:center;cursor:pointer" onclick="openProfile('${p.email}')"><img src="${p.avatar}" class="avatar"><div><b>${p.author} ${p.verified?'<span class="verified">✔</span>':''}</b></div></div><p style="margin-top:10px">${p.content||''}</p>${p.media?`<img src="${p.media}" class="post-img">`:''}<div class="actions"><div class="act-btn ${p.likes.includes(currentUser.email)?'liked':''}" onclick="socket.emit('toggle_like',{id:${p.id},type:'post',userEmail:currentUser.email})">♥ <span id="l-${p.id}">${p.likes.length}</span></div><div class="act-btn" onclick="toggleC(${p.id})">💬 <span>${p.comments.length}</span></div></div><div class="comments-area" id="com-${p.id}"><div id="clist-${p.id}"></div><div style="display:flex;gap:5px;margin-top:5px"><input id="cin-${p.id}" class="input-box" style="padding:8px"><button class="btn" style="padding:5px" onclick="sendC(${p.id})">➤</button></div></div></div>`)); });
+        window.toggleC=(id)=>{const e=document.getElementById(`com-${id}`); e.style.display=e.style.display==='block'?'none':'block';}
+        window.sendC=(id)=>{const t=document.getElementById(`cin-${id}`).value; if(t){socket.emit('add_comment',{postId:id, text:t, userEmail:currentUser.email, userName:currentUser.name, userAvatar:currentUser.avatar}); document.getElementById(`cin-${id}`).value='';}}
+        socket.on('update_likes', (d)=>{ const e=document.getElementById(`l-${d.id}`); if(e)e.innerText=d.likes.length; });
+        socket.on('update_comments', (d)=>{ document.getElementById(`clist-${d.postId}`).innerHTML = d.comments.map(c=>`<div class="comment-item"><img src="${c.userAvatar}" style="width:20px;height:20px;border-radius:50%"><div class="comment-bubble"><b>${c.userName}</b><br>${c.text}</div></div>`).join(''); });
     </script>
 </body>
-    </html>
+        </html>
